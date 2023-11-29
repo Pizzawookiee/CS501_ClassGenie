@@ -1,27 +1,34 @@
 package com.example.cs501_classgenie
 
-import android.net.wifi.hotspot2.pps.Credential
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
 import com.google.api.client.http.HttpTransport
-import com.google.api.client.http.apache.v2.ApacheHttpTransport
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.JsonFactory
 import com.google.api.client.json.gson.GsonFactory
-import com.google.api.client.util.store.AbstractDataStoreFactory
-import com.google.api.client.util.store.DataStore
-import com.google.api.client.util.store.DataStoreFactory
 import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.calendar.CalendarScopes
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStreamReader
+
 
 private const val TOKENS_DIRECTORY_PATH = "tokens"
 
@@ -33,7 +40,19 @@ private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
 private const val CREDENTIALS_FILE_PATH = "/credentials.json"
 
+private const val WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 123
+
+private const val RC_GET_AUTH_CODE = 1234
+
+
+
+//source: https://github.com/0xsanchit/MongoDbRealmCourse_Android/blob/master/app/src/main/java/com/example/mongodbrealmcourse/MainActivity.java
+
+
+
 /** Authorizes the installed application to access user's protected data.  */
+
+/*
 @Throws(Exception::class)
 private fun authorize(): com.google.api.client.auth.oauth2.Credential {
     // load client secrets
@@ -54,7 +73,7 @@ private fun authorize(): com.google.api.client.auth.oauth2.Credential {
     // authorize
     return AuthorizationCodeInstalledApp(flow, LocalServerReceiver()).authorize("user")
 }
-
+*/
 /*
 object CalendarQuickstart {
     /**
@@ -148,13 +167,55 @@ object CalendarQuickstart {
 */
 //maybe make a 'map not available' feature somehow if the next event in schedule doesn't have location or network error or something else?
 class MainActivity : AppCompatActivity() {
+
+    //source: https://medium.com/@angakoko/firbase-google-sign-in-in-android-app-using-kotlin-d63ae127206d
+    //source: https://stackoverflow.com/questions/75137115/startactivityforresultandroid-content-intent-int-is-deprecated-what-can-i-d
+    //source: https://github.com/0xsanchit/MongoDbRealmCourse_Android/blob/master/app/src/main/java/com/example/mongodbrealmcourse/MainActivity.java
+
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .build()
+
+    val googleSignInClient = GoogleSignIn.getClient(this, gso)
+
+    private fun getAuthCode() {
+        val signInIntent: Intent = googleSignInClient.signInIntent
+        launcher.launch(signInIntent)
+    }
+
+    private fun signOut() {
+        googleSignInClient.signOut().addOnCompleteListener(this,
+            OnCompleteListener<Void?> { })
+    }
+
+    private fun revokeAccess() {
+        googleSignInClient.revokeAccess().addOnCompleteListener(this,
+            OnCompleteListener<Void?> { })
+    }
+
+
+    var launcher: ActivityResultLauncher<Intent> = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result: ActivityResult ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                val authCode = account.serverAuthCode
+                Log.d("OAuth", authCode.toString())
+            } catch (e: ApiException) {
+                Log.w("OAuth", "Sign-in failed", e)
+            }
+
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val sync_button: Button = findViewById(R.id.sync_button)
 
         sync_button.setOnClickListener {
-            authorize()
+            getAuthCode()
         }
     }
 }
