@@ -133,16 +133,16 @@ class OAuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app: Application = getApplication()
 
-    private suspend fun getTokenFolder(): File {
+    private  fun getTokenFolder(): File {
         return File(app.getExternalFilesDir("")?.absolutePath + TOKENS_DIRECTORY_PATH)
     }
 
-    private suspend fun getCredentialFileStream(): InputStream {
+    private  fun getCredentialFileStream(): InputStream {
 
         return app.resources.openRawResource(R.raw.credentials)
     }
 
-    suspend fun authorize(): com.google.api.client.auth.oauth2.Credential{
+    fun authorize(): com.google.api.client.auth.oauth2.Credential{
         var tokenFolder = getTokenFolder()
         //var credentialFile = getCredentialFile()
 
