@@ -19,6 +19,19 @@
         tools:context=".MainActivity"
         />
 
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/Weather_fragment_container"
+        android:name="com.example.cs501_classgenie.WeatherFragment"
+        android:layout_width="wrap_content"
+        android:layout_height="0sp"
+        app:layout_constraintHeight_default="percent"
+        app:layout_constraintHeight_percent="0.5"
+        app:layout_constraintTop_toBottomOf="@+id/OAuth_fragment_container"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:context=".MainActivity"
+        />
+
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

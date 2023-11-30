@@ -1,3 +1,5 @@
+package com.example.cs501_classgenie
+
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View

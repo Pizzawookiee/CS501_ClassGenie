@@ -2,6 +2,7 @@ package com.example.cs501_classgenie
 
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -37,12 +38,17 @@ class OAuthFragment : Fragment() {
     ): View? {
         _binding = FragmentOAuthBinding.inflate(inflater, container, false)
 
+
+
         val sync_button: Button = binding.syncButton
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 sync_button.setOnClickListener {
                     //run OAuth code from ViewModel
-                    OAuthViewModel.authorize()
+                    Log.d("OAuth", "making call to ViewModel")
+                    launch{
+                        OAuthViewModel.authorize()
+                    }
                 }
             }
         }

@@ -61,7 +61,7 @@ dependencies {
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.4.1")
 
 
-    implementation ("androidx.activity:activity:1.8.1")
+    implementation ("androidx.activity:activity-ktx:1.8.1")
     implementation("androidx.fragment:fragment-ktx:1.6.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.databinding:viewbinding:8.1.2")
