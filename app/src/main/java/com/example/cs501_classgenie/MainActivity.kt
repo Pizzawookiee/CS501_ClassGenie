@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.widget.Button
 import androidx.activity.result.ActivityResult
@@ -27,18 +28,22 @@ import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.calendar.CalendarScopes
 import java.io.File
 import java.io.FileInputStream
+import java.io.InputStream
 import java.io.InputStreamReader
 
 
-private const val TOKENS_DIRECTORY_PATH = "tokens"
+private const val TOKENS_DIRECTORY_PATH = "/tokens"
 
 private val httpTransport: HttpTransport = NetHttpTransport()
 
-private val dataStoreFactory = FileDataStoreFactory(File(TOKENS_DIRECTORY_PATH)) //error message is java.io.IOException: unable to create directory: /tokens
+//private var tokenFolder = File(Environment.getExternalStorageDirectory().toString() + File.separator + TOKENS_DIRECTORY_PATH)
+
+//private val dataStoreFactory = FileDataStoreFactory(tokenFolder) //error message is java.io.IOException: unable to create directory: /tokens
 
 private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
 private const val CREDENTIALS_FILE_PATH = "/credentials.json"
+
 
 private const val WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 123
 
@@ -47,33 +52,12 @@ private const val RC_GET_AUTH_CODE = 1234
 
 
 //source: https://github.com/0xsanchit/MongoDbRealmCourse_Android/blob/master/app/src/main/java/com/example/mongodbrealmcourse/MainActivity.java
-
+//source: https://stackoverflow.com/questions/25094834/is-it-possible-to-use-com-sun-net-httpserver-package-in-android-program
 
 
 /** Authorizes the installed application to access user's protected data.  */
 
-/*
-@Throws(Exception::class)
-private fun authorize(): com.google.api.client.auth.oauth2.Credential {
-    // load client secrets
-    val clientSecrets = GoogleClientSecrets.load(
-        JSON_FACTORY,
-        InputStreamReader(FileInputStream(CREDENTIALS_FILE_PATH))
-    )
-    Log.d("OAuth", "clientSecrets loaded")
-
-    // set up authorization code flow
-    Log.d("OAuth", "initializing flow creation")
-    val flow = GoogleAuthorizationCodeFlow.Builder(
-        httpTransport, JSON_FACTORY, clientSecrets, setOf<String>(CalendarScopes.CALENDAR)
-    ).setDataStoreFactory(dataStoreFactory)
-        .build()
-
-    Log.d("OAuth", "flow created")
-    // authorize
-    return AuthorizationCodeInstalledApp(flow, LocalServerReceiver()).authorize("user")
-}
-*/
+//source: Google Calendar API Quickstart Java (https://developers.google.com/calendar/api/quickstart/java)
 /*
 object CalendarQuickstart {
     /**
@@ -168,6 +152,16 @@ object CalendarQuickstart {
 //maybe make a 'map not available' feature somehow if the next event in schedule doesn't have location or network error or something else?
 class MainActivity : AppCompatActivity() {
 
+    private fun getTokenFolder(): File {
+        return File(this.getExternalFilesDir("")?.absolutePath + TOKENS_DIRECTORY_PATH)
+    }
+
+    private fun getCredentialFileStream(): InputStream {
+
+        return getResources().openRawResource(R.raw.credentials)
+    }
+
+    /*
     //source: https://medium.com/@angakoko/firbase-google-sign-in-in-android-app-using-kotlin-d63ae127206d
     //source: https://stackoverflow.com/questions/75137115/startactivityforresultandroid-content-intent-int-is-deprecated-what-can-i-d
     //source: https://github.com/0xsanchit/MongoDbRealmCourse_Android/blob/master/app/src/main/java/com/example/mongodbrealmcourse/MainActivity.java
@@ -204,18 +198,57 @@ class MainActivity : AppCompatActivity() {
                 val authCode = account.serverAuthCode
                 Log.d("OAuth", authCode.toString())
             } catch (e: ApiException) {
-                Log.w("OAuth", "Sign-in failed", e)
+                Log.d("OAuth", "Sign-in failed", e)
             }
 
         }
     }
+    */
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val sync_button: Button = findViewById(R.id.sync_button)
 
+        var tokenFolder = getTokenFolder()
+        //var credentialFile = getCredentialFile()
+
+        if (!tokenFolder.exists()) {
+            tokenFolder.mkdirs()
+        }
+        /*
+        Log.d("OAuth", credentialFile.absolutePath)
+        if (!credentialFile.exists()){
+            Log.d ("OAuth", "File not found.")
+        }
+        */
+
+
+        val dataStoreFactory = FileDataStoreFactory(tokenFolder)
+
+        @Throws(Exception::class)
+        fun authorize(): com.google.api.client.auth.oauth2.Credential {
+            // load client secrets
+            val clientSecrets = GoogleClientSecrets.load(
+                JSON_FACTORY,
+                InputStreamReader(getCredentialFileStream())
+            )
+            Log.d("OAuth", "clientSecrets loaded")
+
+            // set up authorization code flow
+            Log.d("OAuth", "initializing flow creation")
+            val flow = GoogleAuthorizationCodeFlow.Builder(
+                httpTransport, JSON_FACTORY, clientSecrets, setOf<String>(CalendarScopes.CALENDAR)
+            ).setDataStoreFactory(dataStoreFactory)
+                .build()
+
+            Log.d("OAuth", "flow created")
+            // authorize
+            return AuthorizationCodeInstalledApp(flow, LocalServerReceiver()).authorize("user")
+        }
+
         sync_button.setOnClickListener {
-            getAuthCode()
+            authorize()
         }
     }
 }
