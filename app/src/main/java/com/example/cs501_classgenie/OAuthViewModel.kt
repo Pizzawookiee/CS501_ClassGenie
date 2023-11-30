@@ -143,6 +143,8 @@ class OAuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun authorize(): com.google.api.client.auth.oauth2.Credential{
+        Log.d("OAuth", "authorize function started")
+
         var tokenFolder = getTokenFolder()
         //var credentialFile = getCredentialFile()
 
@@ -174,7 +176,10 @@ class OAuthViewModel(application: Application) : AndroidViewModel(application) {
 
         Log.d("OAuth", "flow created")
         // authorize
-        return AuthorizationCodeInstalledApp(flow, LocalServerReceiver()).authorize("user")
+
+        val receiver: LocalServerReceiver = LocalServerReceiver.Builder().setPort(8888).build()
+
+        return AuthorizationCodeInstalledApp(flow, receiver).authorize("user")
 
     }
 

@@ -51,7 +51,7 @@ class WeatherFragment : Fragment() {
     }
 
     private fun fetchWeatherData() {
-        val call = weatherApi.getCurrentWeather("London", apiKey)
+        val call = weatherApi.getCurrentWeather("Boston", apiKey)
         call.enqueue(object : Callback<WeatherResponse> {
             override fun onResponse(call: Call<WeatherResponse>, response: Response<WeatherResponse>) {
                 if (response.isSuccessful) {

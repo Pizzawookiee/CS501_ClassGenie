@@ -46,9 +46,12 @@ class OAuthFragment : Fragment() {
                 sync_button.setOnClickListener {
                     //run OAuth code from ViewModel
                     Log.d("OAuth", "making call to ViewModel")
+                    //OAuthViewModel.authorize()
+                    /*
                     launch{
-                        OAuthViewModel.authorize()
+
                     }
+                     */
                 }
             }
         }
