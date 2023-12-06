@@ -1,11 +1,9 @@
 package com.example.cs501_classgenie
 
-import android.accounts.Account
 import android.app.Activity.RESULT_OK
 import android.app.Application
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import android.util.Log
@@ -24,35 +22,18 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
-import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl
-import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
-import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
-import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-import com.google.api.client.http.HttpTransport
-import com.google.api.client.http.javanet.NetHttpTransport
-import com.google.api.client.json.JsonFactory
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
-import com.google.api.client.util.ExponentialBackOff
-import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.Events
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.util.Arrays
-import java.util.Collections
 
 //private const val TOKENS_DIRECTORY_PATH = "/tokens"
 
@@ -64,6 +45,10 @@ import java.util.Collections
 
 //private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
+
+//note: for notifications have a fall-back if unable to connect with google maps
+//maybe cache google maps directions in advance in terms of time to destination?
+//or, more simply just set it to 10 min before if unable to get google maps data
 class OAuthFragment : Fragment() {
 
     private var isLoggedIn = false
@@ -114,23 +99,7 @@ class OAuthFragment : Fragment() {
         sync_button.setOnClickListener{
             Log.d("Calendar", "this button should refresh cache of calendar events for ViewModel, not done yet")
         }
-        /*
-        lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sync_button.setOnClickListener {
-                    //run OAuth code from ViewModel
-                    Log.d("OAuth", "making call to ViewModel")
 
-                    launch{//this doesn't work
-                        Log.d("OAuth", "authorization coroutine started")
-                        OAuthViewModel.authorize()
-                    }
-
-                }
-            }
-        }
-
-         */
 
 
 
