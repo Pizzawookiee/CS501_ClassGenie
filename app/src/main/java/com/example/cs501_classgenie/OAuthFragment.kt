@@ -92,16 +92,9 @@ class OAuthFragment : Fragment() {
 
         val sync_button: Button = binding.syncButton
 
-        val app: Application = requireActivity().application
 
-        fun getTokenFolder(): File {
-            return File(app.getExternalFilesDir("")?.absolutePath + TOKENS_DIRECTORY_PATH)
-        }
 
-        fun getCredentialFileStream(): InputStream {
 
-            return app.resources.openRawResource(R.raw.credentials)
-        }
         /*
         fun authorize(): GoogleAccountCredential {
             Log.d("OAuth", "authorize function started")
@@ -217,6 +210,8 @@ class OAuthFragment : Fragment() {
 
         */
 
+        //to-do: start log-in automatically, not at the sync button, that button should be for pulling events from calendar
+
         sync_button.setOnClickListener{
             lifecycleScope.launch{
                 Log.d("OAuth", "about to start coroutine")
@@ -285,7 +280,26 @@ class OAuthFragment : Fragment() {
                         val credential = GoogleAccountCredential.usingOAuth2(requireActivity().baseContext, scopes)
                         credential.selectedAccount = account.account
 
+                        val app: Application = requireActivity().application
+
+                        fun getTokenFolder(): File {
+                            return File(app.getExternalFilesDir("")?.absolutePath + TOKENS_DIRECTORY_PATH)
+                        }
+
+                        fun getCredentialFileStream(): InputStream {
+
+                            return app.resources.openRawResource(R.raw.credentials)
+                        }
+
                         val jsonFactory = GsonFactory.getDefaultInstance()
+
+                        // load client secrets
+                        val clientSecrets = GoogleClientSecrets.load(
+                            jsonFactory,
+                            InputStreamReader(getCredentialFileStream())
+                        )
+                        Log.d("OAuth", "clientSecrets loaded")
+
                         val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
                         val calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
                             .setApplicationName(getString(R.string.app_name))
@@ -295,32 +309,37 @@ class OAuthFragment : Fragment() {
 
                         val now = DateTime(System.currentTimeMillis())
                         Log.d("Calendar", now.toString())
-                        /*
 
-                        val events: Events = calendar.events().list("primary")
-                            .setMaxResults(10)
-                            .setTimeMin(now)
-                            .setOrderBy("startTime")
-                            .setSingleEvents(true)
-                            .execute()
+                        lifecycleScope.launch{
+                            withContext(Dispatchers.IO){
+                                val events: Events = calendar.events().list("primary")
+                                    .setMaxResults(10)
+                                    .setTimeMin(now)
+                                    .setOrderBy("startTime")
+                                    .setSingleEvents(true)
+                                    .execute()
 
-                        val items: List<Event> = events.items
-                        Log.d("Calendar", "events retrieved")
+                                val items: List<Event> = events.items
+                                Log.d("Calendar", "events retrieved")
 
-                        if (items.isEmpty()) {
-                            Log.d("Calendar", "No upcoming events found.")
-                        } else {
-                            Log.d("Calendar", "Upcoming events")
-                            for (event in items) {
-                                var start: DateTime = event.start.dateTime
-                                if (start == null) {
-                                    start = event.start.date
+                                if (items.isEmpty()) {
+                                    Log.d("Calendar", "No upcoming events found.")
+                                } else {
+                                    Log.d("Calendar", "Upcoming events")
+                                    for (event in items) {
+                                        var start: DateTime = event.start.dateTime
+                                        if (start == null) {
+                                            start = event.start.date
+                                        }
+                                        Log.d("Calendar", event.summary.toString())
+                                    }
                                 }
-                                Log.d("Calendar", event.start.toString())
                             }
+
+
                         }
 
-                         */
+
                     }
             }
         }
