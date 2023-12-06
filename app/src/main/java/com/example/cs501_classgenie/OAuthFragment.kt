@@ -91,149 +91,28 @@ class OAuthFragment : Fragment() {
 
 
         val sync_button: Button = binding.syncButton
+        lifecycleScope.launch{
 
+            Log.d("OAuth", "about to start initial auth coroutine")
 
+            //source: https://kotlinlang.org/docs/flow.html#flow-context
+            //source: https://stackoverflow.com/questions/67457208/kotlin-coroutines-why-withcontext-in-coroutinescope
 
-
-        /*
-        fun authorize(): GoogleAccountCredential {
-            Log.d("OAuth", "authorize function started")
-
-            var tokenFolder = getTokenFolder()
-            //var credentialFile = getCredentialFile()
-
-            if (!tokenFolder.exists()) {
-                tokenFolder.mkdirs()
-            }
-
-            /*
-            Log.d("OAuth", credentialFile.absolutePath)
-            if (!credentialFile.exists()){
-                Log.d ("OAuth", "File not found.")
-            }
-            */
-
-            val dataStoreFactory = FileDataStoreFactory(tokenFolder)
-            // load client secrets
-            val clientSecrets = GoogleClientSecrets.load(
-                JSON_FACTORY,
-                InputStreamReader(getCredentialFileStream())
-            )
-            Log.d("OAuth", "clientSecrets loaded")
-
-            // set up authorization code flow
-            Log.d("OAuth", "initializing flow creation")
-            val flow = GoogleAuthorizationCodeFlow.Builder(
-                httpTransport, JSON_FACTORY, clientSecrets, setOf<String>(CalendarScopes.CALENDAR)
-            ).setDataStoreFactory(dataStoreFactory)
-                .build()
-
-            Log.d("OAuth", "flow created")
-            // authorize
-
-            val receiver: LocalServerReceiver = LocalServerReceiver.Builder().setPort(8888).build()
-            Log.d("OAuth", "receiver created")
-
-            //override onAuthorization function to avoid browse() which relies on java.awt.Desktop which doesn't exist on Android
-            //source: https://cloud.google.com/java/docs/reference/google-oauth-client/latest/com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
-            //source: https://stackoverflow.com/questions/52850911/java-awt-desktop-class
-
-
-            /*
-            val result =  AuthorizationCodeInstalledApp(flow, receiver){
-                fun onAuthorization(authorizationUrl: AuthorizationCodeRequestUrl) {
-                    val url = (authorizationUrl.build())
-                    Log.d("OAuth", authorizationUrl.toString())
-                    val browserIntent: Intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    activity?.startActivity(browserIntent)
+            withContext(Dispatchers.IO){
+                Log.d("OAuth", "authorization coroutine started")
+                if (!isLoggedIn) {
+                    requestSignIn(requireActivity().baseContext)
                 }
-            }.authorize("user")
-
-            //doesn't open new window to log in
-            Log.d("OAuth", result.refreshToken.toString())
-            */
-            val mCredential = GoogleAccountCredential.usingOAuth2(activity, Collections.singleton(CalendarScopes.CALENDAR)).setBackOff(
-                ExponentialBackOff()
-            )
-
-            Log.d("OAuth", mCredential.toString())
-
-
-
-
-            /*
-            val signedInAccount: GoogleSignInAccount = GoogleSignIn.getLastSignedInAccount(this)
-            val account: Account = signedInAccount.getAccount()
-
-            val credential: com.google.api.client.auth.oauth2.Credential = com.google.api.client.auth.oauth2.Credential.usingOAuth2(
-                    context,
-            Collections.singleton("https://www.googleapis.com/auth/calendar"));
-            credential.setSelectedAccount(account)
-
-             */
-
-            return mCredential
+                //get_ten_events()
+            }
 
         }
 
-        fun get_ten_events() {
-            // Build a new authorized API client service.
-            val HTTP_TRANSPORT: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
-            val service: Calendar =
-                Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, authorize())
-                    .setApplicationName(resources.getString(R.string.app_name))
-                    .build()
-            Log.d("Calendar", "calendar built")
-            // List the next 10 events from the primary calendar.
-            val now = DateTime(System.currentTimeMillis())
-            val events: Events = service.events().list("primary")
-                .setMaxResults(10)
-                .setTimeMin(now)
-                .setOrderBy("startTime")
-                .setSingleEvents(true)
-                .execute()
-            val items: List<Event> = events.items
-            Log.d("Calendar", "events retrieved")
-            if (items.isEmpty()) {
-                Log.d("Calendar", "No upcoming events found.")
-            } else {
-                Log.d("Calendar", "Upcoming events")
-                for (event in items) {
-                    var start: DateTime = event.start.dateTime
-                    if (start == null) {
-                        start = event.start.date
-                    }
-                    Log.d("Calendar", event.start.toString())
-                }
-            }
-        }
-
-        */
 
         //to-do: start log-in automatically, not at the sync button, that button should be for pulling events from calendar
 
         sync_button.setOnClickListener{
-            lifecycleScope.launch{
-                Log.d("OAuth", "about to start coroutine")
-
-                //source: https://kotlinlang.org/docs/flow.html#flow-context
-                //source: https://stackoverflow.com/questions/67457208/kotlin-coroutines-why-withcontext-in-coroutinescope
-
-                withContext(Dispatchers.IO){
-                    Log.d("OAuth", "authorization coroutine started")
-                    if (!isLoggedIn) {
-                        requestSignIn(requireActivity().baseContext)
-                    }
-                    //get_ten_events()
-                }
-                /*
-                launch{//this doesn't work???
-
-                }
-
-                 */
-
-            }
+            Log.d("Calendar", "this button should refresh cache of calendar events for ViewModel, not done yet")
         }
         /*
         lifecycleScope.launch {
@@ -310,11 +189,13 @@ class OAuthFragment : Fragment() {
                         val now = DateTime(System.currentTimeMillis())
                         Log.d("Calendar", now.toString())
 
+
+                        //sample code for retrieving event data
                         lifecycleScope.launch{
                             withContext(Dispatchers.IO){
                                 val events: Events = calendar.events().list("primary")
-                                    .setMaxResults(10)
                                     .setTimeMin(now)
+                                    .setTimeMax(DateTime(now.value+7*24*60*60*1000))
                                     .setOrderBy("startTime")
                                     .setSingleEvents(true)
                                     .execute()
