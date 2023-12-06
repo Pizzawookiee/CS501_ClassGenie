@@ -44,9 +44,11 @@ android {
 
 dependencies {
     implementation(fileTree("libs") { include("*.jar") })
+    implementation("com.google.http-client:google-http-client-gson:1.42.3"){
+        exclude ("org.apache.httpcomponents")
+    }
 
-
-    implementation ("com.google.api-client:google-api-client:1.32.1"){
+    implementation ("com.google.api-client:google-api-client-android:2.2.0"){
         exclude ("org.apache.httpcomponents")
     }
     implementation ("com.google.oauth-client:google-oauth-client-jetty:1.30.1"){
@@ -55,6 +57,16 @@ dependencies {
     implementation ("com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0"){
         exclude ("org.apache.httpcomponents")
     }
+
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.16.0"){
+        exclude ("org.apache.httpcomponents")
+    }
+    implementation("com.google.android.gms:play-services-auth:20.4.1"){
+        exclude ("org.apache.httpcomponents")
+    }
+
+    implementation("androidx.credentials:credentials:1.2.0")
+
 
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")

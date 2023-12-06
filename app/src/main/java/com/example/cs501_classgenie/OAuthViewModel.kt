@@ -1,8 +1,12 @@
 package com.example.cs501_classgenie
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
+import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.AndroidViewModel
+import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
@@ -142,7 +146,7 @@ class OAuthViewModel(application: Application) : AndroidViewModel(application) {
         return app.resources.openRawResource(R.raw.credentials)
     }
 
-    fun authorize(): com.google.api.client.auth.oauth2.Credential{
+    fun authorize(): com.google.api.client.auth.oauth2.Credential {
         Log.d("OAuth", "authorize function started")
 
         var tokenFolder = getTokenFolder()
@@ -178,6 +182,12 @@ class OAuthViewModel(application: Application) : AndroidViewModel(application) {
         // authorize
 
         val receiver: LocalServerReceiver = LocalServerReceiver.Builder().setPort(8888).build()
+
+        //override onAuthorization function to avoid browse() which relies on java.awt.Desktop which doesn't exist on Android
+        //source: https://cloud.google.com/java/docs/reference/google-oauth-client/latest/com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
+        //source: https://stackoverflow.com/questions/52850911/java-awt-desktop-class
+
+
 
         return AuthorizationCodeInstalledApp(flow, receiver).authorize("user")
 
