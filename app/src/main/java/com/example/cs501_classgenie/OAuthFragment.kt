@@ -54,15 +54,15 @@ import java.io.InputStreamReader
 import java.util.Arrays
 import java.util.Collections
 
-private const val TOKENS_DIRECTORY_PATH = "/tokens"
+//private const val TOKENS_DIRECTORY_PATH = "/tokens"
 
-private val httpTransport: HttpTransport = NetHttpTransport()
+//private val httpTransport: HttpTransport = NetHttpTransport()
 
 //private var tokenFolder = File(Environment.getExternalStorageDirectory().toString() + File.separator + TOKENS_DIRECTORY_PATH)
 
 //private val dataStoreFactory = FileDataStoreFactory(tokenFolder) //error message is java.io.IOException: unable to create directory: /tokens
 
-private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
+//private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
 class OAuthFragment : Fragment() {
 
@@ -103,7 +103,7 @@ class OAuthFragment : Fragment() {
                 if (!isLoggedIn) {
                     requestSignIn(requireActivity().baseContext)
                 }
-                //get_ten_events()
+
             }
 
         }
@@ -158,7 +158,7 @@ class OAuthFragment : Fragment() {
                         val scopes = listOf(CalendarScopes.CALENDAR)
                         val credential = GoogleAccountCredential.usingOAuth2(requireActivity().baseContext, scopes)
                         credential.selectedAccount = account.account
-
+                        /*
                         val app: Application = requireActivity().application
 
                         fun getTokenFolder(): File {
@@ -170,14 +170,18 @@ class OAuthFragment : Fragment() {
                             return app.resources.openRawResource(R.raw.credentials)
                         }
 
+                         */
+
                         val jsonFactory = GsonFactory.getDefaultInstance()
 
-                        // load client secrets
+                        // load client secrets (not needed)
+                        /*
                         val clientSecrets = GoogleClientSecrets.load(
                             jsonFactory,
                             InputStreamReader(getCredentialFileStream())
                         )
-                        Log.d("OAuth", "clientSecrets loaded")
+                         */
+                        //Log.d("OAuth", "clientSecrets loaded")
 
                         val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
                         val calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
@@ -190,7 +194,7 @@ class OAuthFragment : Fragment() {
                         Log.d("Calendar", now.toString())
 
 
-                        //sample code for retrieving event data
+                        //sample code for retrieving event data; the coroutine is necessary
                         lifecycleScope.launch{
                             withContext(Dispatchers.IO){
                                 val events: Events = calendar.events().list("primary")
