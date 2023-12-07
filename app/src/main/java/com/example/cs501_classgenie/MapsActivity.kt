@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.cs501_classgenie.databinding.ActivityMapsRouteBinding
 import com.example.kotlindemos.PermissionUtils
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener
@@ -44,6 +46,27 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
     private var permissionDenied = false
 
+    // The entry point to the Fused Location Provider.
+    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+
+    private var lastKnownLocation: Location? = null
+
+    // A default location (725 Commonwealth Ave, Boston) and default zoom to use when location permission is
+    // not granted.
+    private val defaultLocation = LatLng(42.3503127, -71.1058402)
+
+    val destination = """
+        "address": "725 commonwealth ave"
+        """.trimIndent()
+    val alternativeAddressFormat = """
+        "location":{
+            "latLng":{
+                "latitude": 42.3503127,
+                "longitude": -71.1058402
+            }
+        }
+        """.trimIndent()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,30 +78,36 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
+        // Construct a FusedLocationProviderClient.
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
     // https://github.com/googlemaps-samples/android-samples/tree/main/ApiDemos/kotlin
     /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
+     * draw route.
      */
-    override fun onMapReady(googleMap: GoogleMap) {
+    fun drawRoute(googleMap: GoogleMap) {
+        // https://stackoverflow.com/a/9289190
         val policy = ThreadPolicy.Builder().permitAll().build()
-
         StrictMode.setThreadPolicy(policy)
+        val origin = """
+            "location":{
+                "latLng":{
+                    "latitude": ${lastKnownLocation!!.latitude},
+                    "longitude": ${lastKnownLocation!!.longitude}
+                }
+            }
+        """.trimIndent()
+
 
         val bodyJson = """
           {
               "origin":{
-                "address": "900 commonwealth ave"
+                ${origin}
               },
               "destination":{
-                "address": "500 commonwealth ave"
+                ${destination}
               },
               "travelMode": "DRIVE",
               "polylineEncoding": "GEO_JSON_LINESTRING",
@@ -99,14 +128,17 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             .url("https://routes.googleapis.com/directions/v2:computeRoutes")
             .post(body)
             .addHeader("Content-Type", "application/json")
-            .addHeader("X-Goog-Api-Key","")
-            .addHeader("X-Goog-FieldMask", "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.polyline")
+            .addHeader("X-Goog-Api-Key", "")
+            .addHeader(
+                "X-Goog-FieldMask",
+                "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.polyline"
+            )
             .build()
 
         val client = OkHttpClient()
         val call: Call = client.newCall(httpRequest)
         val httpResponse: Response = call.execute()
-        val jsonObject: JSONObject = JSONObject(httpResponse.body?.string() ?:"")
+        val jsonObject: JSONObject = JSONObject(httpResponse.body?.string() ?: "")
         """
             {
               "routes": [
@@ -117,7 +149,9 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
                     "geoJsonLinestring": {
                       "coordinates": [
                         [
+                        // longitude
                           -71.1159892,
+                        // latitude
                           42.3510554
                         ],
                         [
@@ -161,20 +195,25 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             }
         """.trimIndent()
 
-        val coors = jsonObject.getJSONArray("routes")
+        val routeDuration = jsonObject.getJSONArray("routes")
+            .getJSONObject(0)
+            .getJSONObject("duration").toString()
+        val routeCoordinates = jsonObject.getJSONArray("routes")
             .getJSONObject(0)
             .getJSONObject("polyline")
             .getJSONObject("geoJsonLinestring")
             .getJSONArray("coordinates")
         val LatLngList = mutableListOf<LatLng>()
-        for (pair in 0..coors.length()-1){
-            LatLngList.add(LatLng(
-                coors.getJSONArray(pair)[1].toString().toDouble(),
-                coors.getJSONArray(pair)[0].toString().toDouble()
-            ))
+        for (pair in 0..routeCoordinates.length() - 1) {
+            LatLngList.add(
+                LatLng(
+                    routeCoordinates.getJSONArray(pair)[1].toString().toDouble(),
+                    routeCoordinates.getJSONArray(pair)[0].toString().toDouble()
+                )
+            )
         }
 
-        Log.d("response",coors.toString())
+        Log.d("response", routeCoordinates.toString())
 
         // Add polylines to the map.
         // Polylines are useful to show a route or some other connection between points.
@@ -182,16 +221,17 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         // [START maps_poly_activity_add_polyline]
         val polyline1 = googleMap.addPolyline(
             PolylineOptions()
-            .clickable(true)
-            .add(
-                *LatLngList.toTypedArray()
+                .clickable(true)
+                .add(
+                    *LatLngList.toTypedArray()
 //                        LatLng(-29.501, 119.700),
 //            LatLng(-27.456, 119.672),
 //            LatLng(-25.971, 124.187),
 //            LatLng(-28.081, 126.555),
 //            LatLng(-28.848, 124.229),
 //            LatLng(-28.215, 123.938)
-            ))
+                )
+        )
         // [END maps_poly_activity_add_polyline]
         // [START_EXCLUDE silent]
         // Store a data object with the polyline, used here to indicate an arbitrary type.
@@ -199,17 +239,80 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         // [END maps_poly_activity_add_polyline_set_tag]
         // Style the polyline.
         stylePolyline(polyline1)
+    }
 
+    /**
+     * Manipulates the map once available.
+     * This callback is triggered when the map is ready to be used.
+     * This is where we can add markers or lines, add listeners or move the camera. In this case,
+     * we just add a marker near Sydney, Australia.
+     * If Google Play services is not installed on the device, the user will be prompted to install
+     * it inside the SupportMapFragment. This method will only be triggered once the user has
+     * installed Google Play services and returned to the app.
+     */
+    override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        // Add a marker in Sydney and move the camera
-        val sydney = LatLng(42.0, -71.0)
-        mMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+        // Add a marker in Boston and move the camera
+//        val boston = LatLng(42.0, -71.0)
+//        mMap.addMarker(MarkerOptions().position(boston).title("Marker in Boston"))
+//        mMap.moveCamera(CameraUpdateFactory.newLatLng(boston))
 
         googleMap.setOnMyLocationButtonClickListener(this)
         googleMap.setOnMyLocationClickListener(this)
         enableMyLocation()
+        getDeviceLocation()
+
+        val currentLocation : LatLng
+        if (lastKnownLocation != null) {
+            currentLocation = LatLng(lastKnownLocation!!.latitude, lastKnownLocation!!.longitude)
+        } else {
+            currentLocation = defaultLocation
+        }
+        mMap.addMarker(MarkerOptions().position(currentLocation).title("Current Position"))
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation))
+    }
+
+    /**
+     * Gets the current location of the device, and positions the map's camera.
+     */
+//    @SuppressLint("MissingPermission")
+    private fun getDeviceLocation() {
+        /*
+         * Get the best and most recent location of the device, which may be null in rare
+         * cases when a location is not available.
+         */
+        enableMyLocation()
+        try {
+            val locationResult = fusedLocationProviderClient.lastLocation
+            locationResult.addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Set the map's camera position to the current location of the device.
+                    lastKnownLocation = task.result
+                    if (lastKnownLocation != null) {
+                        mMap?.moveCamera(
+                            CameraUpdateFactory.newLatLngZoom(
+                                LatLng(
+                                    lastKnownLocation!!.latitude,
+                                    lastKnownLocation!!.longitude
+                                ), DEFAULT_ZOOM.toFloat()
+                            )
+                        )
+                    }
+                } else {
+                    Log.d(TAG, "Current location is null. Using defaults.")
+                    Log.e(TAG, "Exception: %s", task.exception)
+                    mMap?.moveCamera(
+                        CameraUpdateFactory
+                            .newLatLngZoom(defaultLocation, DEFAULT_ZOOM.toFloat())
+                    )
+//                    mMap?.uiSettings?.isMyLocationButtonEnabled = false
+                }
+            }
+
+        } catch (e: SecurityException) {
+            Log.e("Exception: %s", e.message, e)
+        }
     }
 
     // [START maps_poly_activity_style_polyline]
@@ -227,15 +330,18 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             "A" -> {
                 // Use a custom bitmap as the cap at the start of the line.
                 polyline.startCap = CustomCap(
-                    BitmapDescriptorFactory.fromResource(R.drawable.ic_arrow), 10f)
+                    BitmapDescriptorFactory.fromResource(R.drawable.ic_arrow), 10f
+                )
             }
+
             "B" -> {
                 // Use a round cap at the start of the line.
                 polyline.startCap = RoundCap()
             }
         }
         polyline.endCap = CustomCap(
-            BitmapDescriptorFactory.fromResource(R.drawable.ic_arrow), 10f)
+            BitmapDescriptorFactory.fromResource(R.drawable.ic_arrow), 10f
+        )
         polyline.width = POLYLINE_STROKE_WIDTH_PX.toFloat()
         polyline.color = COLOR_BLACK_ARGB
         polyline.jointType = JointType.ROUND
@@ -249,7 +355,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         if (!::mMap.isInitialized) return
         // [START maps_check_location_permission]
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED) {
+            == PackageManager.PERMISSION_GRANTED
+        ) {
             mMap.isMyLocationEnabled = true
         } else {
             // Permission to access the location is missing. Show rationale and request permission
@@ -265,6 +372,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show()
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
+        getDeviceLocation()
+        drawRoute(this.mMap)
         return false
     }
 
@@ -273,7 +382,11 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     }
 
     // [START maps_check_location_permission_result]
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
         if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)
             return
@@ -301,6 +414,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
          *
          * @see .onRequestPermissionsResult
          */
+        private val TAG = MapsActivity::class.java.simpleName
+        private const val DEFAULT_ZOOM = 15
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1
     }
 }

@@ -73,6 +73,7 @@ dependencies {
 
     implementation ("androidx.room:room-runtime:2.4.2")
     implementation ("androidx.room:room-ktx:2.4.2")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
     kapt ("androidx.room:room-compiler:2.4.2")
     implementation ("androidx.activity:activity-ktx:1.8.1")
     implementation("androidx.fragment:fragment-ktx:1.6.1")
