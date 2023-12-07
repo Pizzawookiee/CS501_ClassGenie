@@ -1,6 +1,7 @@
 package com.example.cs501_classgenie
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
@@ -56,7 +57,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     private val defaultLocation = LatLng(42.3503127, -71.1058402)
 
     val destination = """
-        "address": "725 commonwealth ave"
+        "address": "500 commonwealth ave"
         """.trimIndent()
     val alternativeAddressFormat = """
         "location":{
@@ -128,7 +129,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             .url("https://routes.googleapis.com/directions/v2:computeRoutes")
             .post(body)
             .addHeader("Content-Type", "application/json")
-            .addHeader("X-Goog-Api-Key", "")
+            .addHeader("X-Goog-Api-Key", "AIzaSyDaS8uGRZG-C1bKcyQJeF5qj2c40QdRgHg")
             .addHeader(
                 "X-Goog-FieldMask",
                 "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.polyline"
@@ -197,7 +198,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
         val routeDuration = jsonObject.getJSONArray("routes")
             .getJSONObject(0)
-            .getJSONObject("duration").toString()
+            .getString("duration")
         val routeCoordinates = jsonObject.getJSONArray("routes")
             .getJSONObject(0)
             .getJSONObject("polyline")
@@ -276,14 +277,15 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     /**
      * Gets the current location of the device, and positions the map's camera.
      */
-//    @SuppressLint("MissingPermission")
+    @SuppressLint("MissingPermission")
     private fun getDeviceLocation() {
         /*
          * Get the best and most recent location of the device, which may be null in rare
          * cases when a location is not available.
          */
         enableMyLocation()
-        try {
+        getLocationPermission()
+//        try {
             val locationResult = fusedLocationProviderClient.lastLocation
             locationResult.addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
@@ -299,6 +301,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
                             )
                         )
                     }
+                    Log.d(TAG, "Current location "+lastKnownLocation.toString())
+                    Log.d(TAG, "task "+ task.exception)
                 } else {
                     Log.d(TAG, "Current location is null. Using defaults.")
                     Log.e(TAG, "Exception: %s", task.exception)
@@ -310,9 +314,9 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
                 }
             }
 
-        } catch (e: SecurityException) {
-            Log.e("Exception: %s", e.message, e)
-        }
+//        } catch (e: SecurityException) {
+//            Log.e("Exception: %s", e.message, e)
+//        }
     }
 
     // [START maps_poly_activity_style_polyline]
@@ -373,12 +377,35 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
         getDeviceLocation()
-        drawRoute(this.mMap)
+        drawRoute(mMap)
         return false
     }
 
     override fun onMyLocationClick(location: Location) {
         Toast.makeText(this, "Current location:\n$location", Toast.LENGTH_LONG).show()
+    }
+
+    // https://developers.google.com/maps/documentation/android-sdk/current-place-tutorial#kotlin
+    /**
+     * Prompts the user for permission to use the device location.
+     */
+    private fun getLocationPermission() {
+        /*
+         * Request location permission, so that we can get the location of the
+         * device. The result of the permission request is handled by a callback,
+         * onRequestPermissionsResult.
+         */
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            mMap.isMyLocationEnabled = true
+        } else {
+            // Permission to access the location is missing. Show rationale and request permission
+            PermissionUtils.requestPermission(
+                this, LOCATION_PERMISSION_REQUEST_CODE,
+                Manifest.permission.ACCESS_FINE_LOCATION, true
+            )
+        }
     }
 
     // [START maps_check_location_permission_result]
