@@ -6,4 +6,7 @@
     <string name="location_permission_denied">location_permission_denied</string>
     <string name="permission_required_toast">permission_required_toast</string>
     <string name="permission_rationale_location">permission_rationale_location</string>
+    <string name="channel_name">notification</string>
+    <string name="channel_description">notification decription</string>
+    <string name="channel_id">classgenie_notification</string>
 </resources>

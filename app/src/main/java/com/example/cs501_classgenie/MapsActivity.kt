@@ -2,14 +2,21 @@ package com.example.cs501_classgenie
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.cs501_classgenie.databinding.ActivityMapsRouteBinding
 import com.example.kotlindemos.PermissionUtils
@@ -68,7 +75,14 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         }
         """.trimIndent()
 
+    private lateinit var alarmManager: AlarmManager
 
+    private var requestNotificationPermission = true
+
+
+
+
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -82,6 +96,33 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
         // Construct a FusedLocationProviderClient.
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Create the NotificationChannel.
+            val name = getString(R.string.channel_name)
+            val descriptionText = getString(R.string.channel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val mChannel = NotificationChannel(getString(R.string.channel_id), name, importance)
+            mChannel.description = descriptionText
+            // Register the channel with the system. You can't change the importance
+            // or other notification behaviors after this.
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(mChannel)
+        }
+
+        alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        var builder = NotificationCompat.Builder(this, getString(R.string.channel_id))
+            .setSmallIcon(R.drawable.ic_arrow)
+            .setContentTitle("textTitle")
+            .setContentText("textContent")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        with(NotificationManagerCompat.from(this)) {
+            if (requestNotificationPermission)
+                getNotificationPermission()
+            // notificationId is a unique int for each notification that you must define.
+            notify(114514, builder.build())
+        }
     }
 
     // https://github.com/googlemaps-samples/android-samples/tree/main/ApiDemos/kotlin
@@ -408,6 +449,25 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         }
     }
 
+    private fun getNotificationPermission() {
+        /*
+         * Request location permission, so that we can get the location of the
+         * device. The result of the permission request is handled by a callback,
+         * onRequestPermissionsResult.
+         */
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotificationPermission = false
+        } else {
+            // Permission to access the location is missing. Show rationale and request permission
+            PermissionUtils.requestPermission(
+                this, NOTIFICATION_PERMISSION_REQUEST_CODE,
+                Manifest.permission.POST_NOTIFICATIONS, true
+            )
+        }
+    }
+
     // [START maps_check_location_permission_result]
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -444,5 +504,6 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         private val TAG = MapsActivity::class.java.simpleName
         private const val DEFAULT_ZOOM = 15
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1
+        private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 114514
     }
 }
