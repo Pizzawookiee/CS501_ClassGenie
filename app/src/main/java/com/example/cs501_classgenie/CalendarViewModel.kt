@@ -24,8 +24,8 @@ import java.io.InputStreamReader
 class CalendarViewModel(application: Application) : AndroidViewModel(application) {
 
     private val calendarRepository = CalendarRepository.get()
-    private val _events: MutableStateFlow<List<CalendarEvent>> = MutableStateFlow(emptyList())
-    val crimes: StateFlow<List<CalendarEvent>>
+    val _events: MutableStateFlow<List<CalendarEvent>> = MutableStateFlow(emptyList())
+    val events: StateFlow<List<CalendarEvent>>
         get() = _events.asStateFlow()
     init{
         viewModelScope.launch{
