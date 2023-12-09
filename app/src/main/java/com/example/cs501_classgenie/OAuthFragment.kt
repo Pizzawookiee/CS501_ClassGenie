@@ -10,10 +10,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.TextView
 import com.example.cs501_classgenie.databinding.FragmentOAuthBinding
 import kotlinx.coroutines.launch
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.cs501_classgenie.database.EventDAO
@@ -54,6 +57,8 @@ class OAuthFragment : Fragment() {
         private const val REQUEST_SIGN_IN = 1
         private lateinit var calendar: Calendar
         private lateinit var calendar_events: List<CalendarEvent>
+        private var nextEventSummaryText: MutableLiveData<String> = MutableLiveData<String>()
+        private var nextEventLocationText: MutableLiveData<String?> = MutableLiveData<String?>()
     }
 
     val calendarViewModel: CalendarViewModel by activityViewModels()
@@ -73,7 +78,9 @@ class OAuthFragment : Fragment() {
 
 
 
-        val sync_button: Button = binding.syncButton
+        val syncButton: Button = binding.syncButton
+        val nextEventSummary: TextView = binding.nextEventSummary
+
         lifecycleScope.launch{
 
             Log.d("OAuth", "about to start initial auth coroutine")
@@ -85,6 +92,7 @@ class OAuthFragment : Fragment() {
                 Log.d("OAuth", "authorization coroutine started")
                 if (!isLoggedIn) {
                     requestSignIn(requireActivity().baseContext)
+                    //refresh_cache()
                 }
 
             }
@@ -94,11 +102,14 @@ class OAuthFragment : Fragment() {
 
         //to-do: start log-in automatically, not at the sync button, that button should be for pulling events from calendar
 
-        sync_button.setOnClickListener{
+        syncButton.setOnClickListener{
             Log.d("Calendar", "initializing refresh of cache")
             refresh_cache()
         }
 
+        nextEventSummaryText.observe(viewLifecycleOwner, Observer{
+            nextEventSummary.text = nextEventSummaryText.value
+        })
 
 
 
@@ -120,14 +131,39 @@ class OAuthFragment : Fragment() {
 
     }
 
-    private fun return_next_event(){
-        Log.d("Calendar", calendar_events.size.toString())
 
-        for (event in calendar_events){
-            Log.d("Calendar", "event retrieved from database")
-            event.start.let { Log.d("Calendar", it.toString())}
-            event.location?.let { Log.d("Calendar", it)}
+
+    private fun return_next_event(){
+
+        val size = calendar_events.size
+        Log.d("Calendar", size.toString())
+
+        if (size > 0){
+            val now = DateTime(System.currentTimeMillis())
+            val max = DateTime(now.value+8*24*60*60*1000)
+            var result = calendar_events[0]
+            var current_smallest = max.value-now.value
+
+            for (event in calendar_events){
+                val difference = event.start.value - now.value
+
+                if (difference < current_smallest){
+                    current_smallest = difference
+                    var result = event
+                }
+            }
+            Log.d("Calendar", "found next event")
+            Log.d("Calendar", result.location.toString())
+            nextEventSummaryText.postValue(result.summary)
+            nextEventLocationText.postValue(result.location)
+
+
+        } else {
+            nextEventSummaryText.postValue("No Event Available")
+
         }
+
+
     }
 
     private fun refresh_cache(){
@@ -237,9 +273,13 @@ class OAuthFragment : Fragment() {
                         Log.d("Calendar", "calendar retrieved")
                         Log.d("Calendar", calendar.toString())
 
+                        refresh_cache()
+
                     }
             }
         }
+
+
     }
 
     override fun onDestroyView() {
