@@ -51,6 +51,7 @@ class OAuthFragment : Fragment() {
         private const val REQUEST_SIGN_IN = 1
         private lateinit var calendar: Calendar
         private lateinit var calendar_events: List<CalendarEvent>
+        private var nextEvent: MutableLiveData<CalendarEvent?> = MutableLiveData<CalendarEvent?>()
         private var nextEventSummaryText: MutableLiveData<String> = MutableLiveData<String>()
         private var nextEventLocationText: MutableLiveData<String?> = MutableLiveData<String?>()
 
@@ -152,6 +153,7 @@ class OAuthFragment : Fragment() {
             Log.d("Calendar", result.location.toString())
             nextEventSummaryText.postValue(result.summary)
             nextEventLocationText.postValue(result.location)
+            nextEvent.postValue(result)
 
 
         } else {
