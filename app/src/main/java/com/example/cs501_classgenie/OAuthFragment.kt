@@ -35,16 +35,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-//private const val TOKENS_DIRECTORY_PATH = "/tokens"
-
-//private val httpTransport: HttpTransport = NetHttpTransport()
-
-//private var tokenFolder = File(Environment.getExternalStorageDirectory().toString() + File.separator + TOKENS_DIRECTORY_PATH)
-
-//private val dataStoreFactory = FileDataStoreFactory(tokenFolder) //error message is java.io.IOException: unable to create directory: /tokens
-
-//private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
-
 
 //note: for notifications have a fall-back if unable to connect with google maps
 //maybe cache google maps directions in advance in terms of time to destination?
@@ -96,15 +86,13 @@ class OAuthFragment : Fragment() {
                 Log.d("OAuth", "authorization coroutine started")
                 if (!isLoggedIn) {
                     requestSignIn(requireActivity().baseContext)
-                    //refresh_cache()
+
                 }
 
             }
 
         }
 
-
-        //to-do: start log-in automatically, not at the sync button, that button should be for pulling events from calendar
 
         syncButton.setOnClickListener{
             Log.d("Calendar", "initializing refresh of cache")
@@ -174,7 +162,6 @@ class OAuthFragment : Fragment() {
         if (calendarViewModel.isOnline(requireActivity().baseContext)){
             try{
 
-                //sample code for retrieving event data; the coroutine is necessary
                 viewLifecycleOwner.lifecycleScope.launch{
                     withContext(Dispatchers.IO){
                         calendarViewModel.clearAll()
@@ -196,7 +183,6 @@ class OAuthFragment : Fragment() {
                         if (items.isEmpty()) {
                             Log.d("Calendar", "No upcoming events found.")
                         } else {
-
 
                             for (item in items){
                                 //Log.d("Calendar", item.summary)
@@ -245,30 +231,8 @@ class OAuthFragment : Fragment() {
                         val scopes = listOf(CalendarScopes.CALENDAR)
                         val credential = GoogleAccountCredential.usingOAuth2(requireActivity().baseContext, scopes)
                         credential.selectedAccount = account.account
-                        /*
-                        val app: Application = requireActivity().application
-
-                        fun getTokenFolder(): File {
-                            return File(app.getExternalFilesDir("")?.absolutePath + TOKENS_DIRECTORY_PATH)
-                        }
-
-                        fun getCredentialFileStream(): InputStream {
-
-                            return app.resources.openRawResource(R.raw.credentials)
-                        }
-
-                         */
 
                         val jsonFactory = GsonFactory.getDefaultInstance()
-
-                        // load client secrets (not needed)
-                        /*
-                        val clientSecrets = GoogleClientSecrets.load(
-                            jsonFactory,
-                            InputStreamReader(getCredentialFileStream())
-                        )
-                         */
-                        //Log.d("OAuth", "clientSecrets loaded")
 
                         val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
                         calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
