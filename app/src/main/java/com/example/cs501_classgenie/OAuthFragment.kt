@@ -39,6 +39,10 @@ import java.util.UUID
 //note: for notifications have a fall-back if unable to connect with google maps
 //maybe cache google maps directions in advance in terms of time to destination?
 //or, more simply just set it to 10 min before if unable to get google maps data
+
+//what is left:
+//automatic sync
+//maybe more advanced sync action (instead of push a button, maybe try swiping down?)
 class OAuthFragment : Fragment() {
 
     private var isLoggedIn = false
