@@ -59,6 +59,10 @@ class OAuthFragment : Fragment() {
         private lateinit var calendar_events: List<CalendarEvent>
         private var nextEventSummaryText: MutableLiveData<String> = MutableLiveData<String>()
         private var nextEventLocationText: MutableLiveData<String?> = MutableLiveData<String?>()
+
+        //review datetime localization stuff before proceeding with these
+        //private var nextEventStartText: MutableLiveData<String> = MutableLiveData<String>()
+        //private var nextEventEndText: MutableLiveData<String> = MutableLiveData<String>()
     }
 
     val calendarViewModel: CalendarViewModel by activityViewModels()
