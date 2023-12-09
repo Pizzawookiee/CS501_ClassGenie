@@ -120,11 +120,6 @@ class OAuthFragment : Fragment() {
 
     }
 
-    private fun set_calendar_events(input: List<CalendarEvent>){
-        calendar_events = input
-
-    }
-
     private fun return_next_event(){
         Log.d("Calendar", calendar_events.size.toString())
 
@@ -136,52 +131,56 @@ class OAuthFragment : Fragment() {
     }
 
     private fun refresh_cache(){
-        try{
-            //sample code for retrieving event data; the coroutine is necessary
-            viewLifecycleOwner.lifecycleScope.launch{
-                withContext(Dispatchers.IO){
-                    val now = DateTime(System.currentTimeMillis())
-                    Log.d("Calendar", now.toString())
+        if (calendarViewModel.isOnline(requireActivity().baseContext)){
+            try{
 
-                    val events: Events = calendar.events().list("primary")
-                        .setTimeMin(now)
-                        .setTimeMax(DateTime(now.value+7*24*60*60*1000))
-                        .setOrderBy("startTime")
-                        .setSingleEvents(true)
-                        .execute()
+                //sample code for retrieving event data; the coroutine is necessary
+                viewLifecycleOwner.lifecycleScope.launch{
+                    withContext(Dispatchers.IO){
+                        calendarViewModel.clearAll()
 
-                    val items: List<Event> = events.items
-                    Log.d("Calendar", "events retrieved")
 
-                    if (items.isEmpty()) {
-                        Log.d("Calendar", "No upcoming events found.")
-                    } else {
+                        val now = DateTime(System.currentTimeMillis())
+                        Log.d("Calendar", now.toString())
 
-                        for (item in items){
-                            //Log.d("Calendar", item.summary)
-                            //Log.d("Calendar", item.start.dateTime.toString())
-                            //Log.d("Calendar", item.end.dateTime.toString())
-                            //Log.d("Calendar", item.location)
-                            val event = CalendarEvent(UUID.randomUUID(), item.summary, item.start.dateTime, item.end.dateTime, item.location)
-                            calendarViewModel.insertEvent(event)
+                        val events: Events = calendar.events().list("primary")
+                            .setTimeMin(now)
+                            .setTimeMax(DateTime(now.value+7*24*60*60*1000))
+                            .setOrderBy("startTime")
+                            .setSingleEvents(true)
+                            .execute()
+
+                        val items: List<Event> = events.items
+                        Log.d("Calendar", "events retrieved")
+
+                        if (items.isEmpty()) {
+                            Log.d("Calendar", "No upcoming events found.")
+                        } else {
+
+
+                            for (item in items){
+                                //Log.d("Calendar", item.summary)
+                                //Log.d("Calendar", item.start.dateTime.toString())
+                                //Log.d("Calendar", item.end.dateTime.toString())
+                                //Log.d("Calendar", item.location)
+                                val event = CalendarEvent(UUID.randomUUID(), item.summary, item.start.dateTime, item.end.dateTime, item.location)
+                                calendarViewModel.insertEvent(event)
+                            }
+
+
                         }
-
-
-                        Log.d("Calendar", "Upcoming events")
-
-
-
-                        return_next_event()
-
-
                     }
+
+
                 }
-
-
+            } catch (e: Exception) {
+                Log.d ("Calendar", "exception while refreshing cache")
             }
-        } catch (e: Exception) {
-            Log.d ("Calendar", "exception while refreshing cache")
+        } else {
+            Log.d ("Calendar", "No internet connection")
         }
+
+        return_next_event()
     }
 
 

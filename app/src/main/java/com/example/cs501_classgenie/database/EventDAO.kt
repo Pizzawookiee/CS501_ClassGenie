@@ -10,7 +10,8 @@ import java.util.UUID
 
 @Dao
 interface EventDAO {
-
+    @Query("DELETE FROM CalendarEvent")
+    fun clearAll()
 
     @Query("SELECT * FROM CalendarEvent")
     fun getEvents(): Flow<List<CalendarEvent>>

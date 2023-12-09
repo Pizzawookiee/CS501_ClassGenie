@@ -22,6 +22,7 @@ class CalendarRepository private constructor(context: Context) {
     fun getEvent(id: UUID): CalendarEvent = database.eventDao().getEvent(id)
 
     fun insertEvent(event: CalendarEvent) = database.eventDao().insertEvent(event)
+    fun clearAll() = database.eventDao().clearAll()
 
     companion object {
         private var INSTANCE: CalendarRepository? = null
