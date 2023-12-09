@@ -3,6 +3,7 @@ package com.example.cs501_classgenie
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.google.api.client.util.DateTime
 import java.util.UUID
 import java.util.Date
 
@@ -11,7 +12,7 @@ import java.util.Date
 data class CalendarEvent (
     @PrimaryKey val id: UUID,
     val summary: String,
-    val start: Date,
-    val end: Date,
+    val start: DateTime,
+    val end: DateTime,
     val location: String?
 )

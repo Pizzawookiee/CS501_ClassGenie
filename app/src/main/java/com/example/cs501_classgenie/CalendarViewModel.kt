@@ -24,6 +24,20 @@ import java.io.InputStreamReader
 class CalendarViewModel(application: Application) : AndroidViewModel(application) {
 
     private val calendarRepository = CalendarRepository.get()
+
+    fun insertEvent(event: CalendarEvent) = calendarRepository.insertEvent(event)
+    /*
+    fun refresh_database(){
+        viewModelScope.launch{
+            calendarRepository.getEvents().collect {
+                _events.value = it
+            }
+        }
+    }
+
+     */
+
+
     val _events: MutableStateFlow<List<CalendarEvent>> = MutableStateFlow(emptyList())
     val events: StateFlow<List<CalendarEvent>>
         get() = _events.asStateFlow()
@@ -34,6 +48,8 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
             }
         }
     }
+
+
 
 
 }

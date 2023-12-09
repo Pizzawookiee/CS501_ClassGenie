@@ -15,10 +15,13 @@ class CalendarRepository private constructor(context: Context) {
             CalendarDatabase::class.java,
             DATABASE_NAME
         )
+        .enableMultiInstanceInvalidation()
         .build()
 
     fun getEvents(): Flow<List<CalendarEvent>> = database.eventDao().getEvents()
-    suspend fun getEvent(id: UUID): CalendarEvent = database.eventDao().getEvent(id)
+    fun getEvent(id: UUID): CalendarEvent = database.eventDao().getEvent(id)
+
+    fun insertEvent(event: CalendarEvent) = database.eventDao().insertEvent(event)
 
     companion object {
         private var INSTANCE: CalendarRepository? = null

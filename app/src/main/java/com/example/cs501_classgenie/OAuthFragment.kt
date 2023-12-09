@@ -16,6 +16,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.example.cs501_classgenie.database.EventDAO
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
@@ -29,6 +30,7 @@ import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.Events
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 //private const val TOKENS_DIRECTORY_PATH = "/tokens"
 
@@ -50,10 +52,11 @@ class OAuthFragment : Fragment() {
 
     companion object {
         private const val REQUEST_SIGN_IN = 1
-        fun newInstance() = OAuthFragment()
+        private lateinit var calendar: Calendar
+        private lateinit var calendar_events: List<CalendarEvent>
     }
 
-    val CalendarViewModel: CalendarViewModel by activityViewModels()
+    val calendarViewModel: CalendarViewModel by activityViewModels()
 
     private var _binding: FragmentOAuthBinding? = null
 
@@ -92,7 +95,8 @@ class OAuthFragment : Fragment() {
         //to-do: start log-in automatically, not at the sync button, that button should be for pulling events from calendar
 
         sync_button.setOnClickListener{
-            Log.d("Calendar", "this button should refresh cache of calendar events for ViewModel, not done yet")
+            Log.d("Calendar", "initializing refresh of cache")
+            refresh_cache()
         }
 
 
@@ -103,13 +107,80 @@ class OAuthFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                CalendarViewModel.events.collect {
-                    Log.d("Calendar", "Events collected from calendar databnase")
-                    //do something with events -> ???
+                calendarViewModel.events.collect {
+                    events -> calendar_events = events
                 }
             }
+        }
+
+
+
+    }
+
+    private fun set_calendar_events(input: List<CalendarEvent>){
+        calendar_events = input
+
+    }
+
+    private fun return_next_event(){
+        Log.d("Calendar", calendar_events.size.toString())
+
+        for (event in calendar_events){
+            Log.d("Calendar", "event retrieved from database")
+            event.start.let { Log.d("Calendar", it.toString())}
+            event.location?.let { Log.d("Calendar", it)}
+        }
+    }
+
+    private fun refresh_cache(){
+        try{
+            //sample code for retrieving event data; the coroutine is necessary
+            viewLifecycleOwner.lifecycleScope.launch{
+                withContext(Dispatchers.IO){
+                    val now = DateTime(System.currentTimeMillis())
+                    Log.d("Calendar", now.toString())
+
+                    val events: Events = calendar.events().list("primary")
+                        .setTimeMin(now)
+                        .setTimeMax(DateTime(now.value+7*24*60*60*1000))
+                        .setOrderBy("startTime")
+                        .setSingleEvents(true)
+                        .execute()
+
+                    val items: List<Event> = events.items
+                    Log.d("Calendar", "events retrieved")
+
+                    if (items.isEmpty()) {
+                        Log.d("Calendar", "No upcoming events found.")
+                    } else {
+
+                        for (item in items){
+                            //Log.d("Calendar", item.summary)
+                            //Log.d("Calendar", item.start.dateTime.toString())
+                            //Log.d("Calendar", item.end.dateTime.toString())
+                            //Log.d("Calendar", item.location)
+                            val event = CalendarEvent(UUID.randomUUID(), item.summary, item.start.dateTime, item.end.dateTime, item.location)
+                            calendarViewModel.insertEvent(event)
+                        }
+
+
+                        Log.d("Calendar", "Upcoming events")
+
+
+
+                        return_next_event()
+
+
+                    }
+                }
+
+
+            }
+        } catch (e: Exception) {
+            Log.d ("Calendar", "exception while refreshing cache")
         }
     }
 
@@ -161,46 +232,11 @@ class OAuthFragment : Fragment() {
                         //Log.d("OAuth", "clientSecrets loaded")
 
                         val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
-                        val calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
+                        calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
                             .setApplicationName(getString(R.string.app_name))
                             .build()
                         Log.d("Calendar", "calendar retrieved")
                         Log.d("Calendar", calendar.toString())
-
-                        val now = DateTime(System.currentTimeMillis())
-                        Log.d("Calendar", now.toString())
-
-
-                        //sample code for retrieving event data; the coroutine is necessary
-                        lifecycleScope.launch{
-                            withContext(Dispatchers.IO){
-                                val events: Events = calendar.events().list("primary")
-                                    .setTimeMin(now)
-                                    .setTimeMax(DateTime(now.value+7*24*60*60*1000))
-                                    .setOrderBy("startTime")
-                                    .setSingleEvents(true)
-                                    .execute()
-
-                                val items: List<Event> = events.items
-                                Log.d("Calendar", "events retrieved")
-
-                                if (items.isEmpty()) {
-                                    Log.d("Calendar", "No upcoming events found.")
-                                } else {
-                                    Log.d("Calendar", "Upcoming events")
-                                    for (event in items) {
-                                        var start: DateTime = event.start.dateTime
-                                        if (start == null) {
-                                            start = event.start.date
-                                        }
-                                        event.location?.toString()?.let { Log.d("Calendar", it) }
-                                    }
-                                }
-                            }
-
-
-                        }
-
 
                     }
             }
