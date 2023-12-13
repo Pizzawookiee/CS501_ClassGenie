@@ -16,6 +16,7 @@ import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -46,6 +47,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONObject
 import java.time.LocalDateTime
+import java.time.ZoneOffset.UTC
 import java.util.Calendar
 
 
@@ -55,6 +57,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsRouteBinding
 
+    private var routeTravelTimeInSecond = 20L
     private var permissionDenied = false
 
     // The entry point to the Fused Location Provider.
@@ -66,7 +69,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     // not granted.
     private val defaultLocation = LatLng(42.3503127, -71.1058402)
 
-    val destination = """
+    var destination = """
         "address": "720 commonwealth ave"
         """.trimIndent()
     val alternativeAddressFormat = """
@@ -82,6 +85,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
     private var requestNotificationPermission = true
 
+    val calendarViewModel: CalendarViewModel by viewModels()
 
 
 
@@ -114,6 +118,14 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             notificationManager.createNotificationChannel(mChannel)
         }
 
+        val nextEvent = calendarViewModel.events.value[0]
+        destination = """
+        "address": "${nextEvent.location}"
+        """.trimIndent()
+
+        var currentDateTime = nextEvent.start
+        var current = LocalDateTime.ofEpochSecond(currentDateTime.value,0,UTC)
+
         getAlarmPermission()
         alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -126,8 +138,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        var current = LocalDateTime.now()
-        current = current.plusSeconds(20)
+//        var current = LocalDateTime.now()
+        current = current.minusSeconds(routeTravelTimeInSecond)
 
         val cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, current.hour);  // set hour
@@ -254,6 +266,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         val routeDuration = jsonObject.getJSONArray("routes")
             .getJSONObject(0)
             .getString("duration")
+        routeTravelTimeInSecond = routeDuration.dropLast(1).toLong()
         val routeCoordinates = jsonObject.getJSONArray("routes")
             .getJSONObject(0)
             .getJSONObject("polyline")

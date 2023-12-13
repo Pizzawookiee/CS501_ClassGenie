@@ -7,22 +7,14 @@ import android.net.NetworkCapabilities
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
-import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
-import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
-import com.google.api.client.json.JsonFactory
-import com.google.api.client.json.gson.GsonFactory
-import com.google.api.client.util.store.FileDataStoreFactory
-import com.google.api.services.calendar.CalendarScopes
+import com.google.api.client.util.DateTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.InputStream
-import java.io.InputStreamReader
-
+import java.time.LocalDateTime
+import java.time.ZoneOffset.UTC
+import java.util.UUID.randomUUID
 
 class CalendarViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -54,7 +46,13 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     }
 
 
-    val _events: MutableStateFlow<List<CalendarEvent>> = MutableStateFlow(emptyList())
+    val _events: MutableStateFlow<List<CalendarEvent>> = MutableStateFlow(
+        listOf(CalendarEvent(randomUUID(),
+            "dummy",
+            DateTime(LocalDateTime.now().plusMinutes(1).toEpochSecond(UTC)),
+            DateTime(LocalDateTime.now().plusMinutes(5).toEpochSecond(UTC)),
+            "720 commonwealth ave"))
+    )
     val events: StateFlow<List<CalendarEvent>>
         get() = _events.asStateFlow()
     init{
