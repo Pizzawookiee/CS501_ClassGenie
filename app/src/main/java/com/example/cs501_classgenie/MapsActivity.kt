@@ -5,7 +5,9 @@ import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
@@ -14,9 +16,8 @@ import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.cs501_classgenie.databinding.ActivityMapsRouteBinding
 import com.example.kotlindemos.PermissionUtils
@@ -44,6 +45,8 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONObject
+import java.time.LocalDateTime
+import java.util.Calendar
 
 
 class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
@@ -64,7 +67,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     private val defaultLocation = LatLng(42.3503127, -71.1058402)
 
     val destination = """
-        "address": "500 commonwealth ave"
+        "address": "720 commonwealth ave"
         """.trimIndent()
     val alternativeAddressFormat = """
         "location":{
@@ -82,7 +85,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
 
 
-    @SuppressLint("MissingPermission")
+    @RequiresApi(Build.VERSION_CODES.O)
+    @SuppressLint("MissingPermission", "ScheduleExactAlarm")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -110,19 +114,29 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             notificationManager.createNotificationChannel(mChannel)
         }
 
+        getAlarmPermission()
         alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        var builder = NotificationCompat.Builder(this, getString(R.string.channel_id))
-            .setSmallIcon(R.drawable.ic_arrow)
-            .setContentTitle("textTitle")
-            .setContentText("textContent")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
-        with(NotificationManagerCompat.from(this)) {
-            if (requestNotificationPermission)
-                getNotificationPermission()
-            // notificationId is a unique int for each notification that you must define.
-            notify(114514, builder.build())
-        }
+        val intent = Intent(this, AlarmReceiver::class.java)
+        intent.action = "com.example.cs501_classgenie.alarmManager"
+        val pendingIntent = PendingIntent.getBroadcast(
+            applicationContext,
+            AlarmReceiver.requestCode,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        var current = LocalDateTime.now()
+        current = current.plusSeconds(20)
+
+        val cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, current.hour);  // set hour
+        cal.set(Calendar.MINUTE, current.minute);          // set minute
+        cal.set(Calendar.SECOND, current.second);               // set seconds
+
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,cal.getTimeInMillis(),pendingIntent);
+
+
     }
 
     // https://github.com/googlemaps-samples/android-samples/tree/main/ApiDemos/kotlin
@@ -464,6 +478,25 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             PermissionUtils.requestPermission(
                 this, NOTIFICATION_PERMISSION_REQUEST_CODE,
                 Manifest.permission.POST_NOTIFICATIONS, true
+            )
+        }
+    }
+
+    private fun getAlarmPermission() {
+        /*
+         * Request location permission, so that we can get the location of the
+         * device. The result of the permission request is handled by a callback,
+         * onRequestPermissionsResult.
+         */
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SCHEDULE_EXACT_ALARM)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+
+        } else {
+            // Permission to access the location is missing. Show rationale and request permission
+            PermissionUtils.requestPermission(
+                this, 123,
+                Manifest.permission.SCHEDULE_EXACT_ALARM, true
             )
         }
     }
