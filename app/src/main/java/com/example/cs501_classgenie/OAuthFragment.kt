@@ -1,10 +1,8 @@
 package com.example.cs501_classgenie
 
 import android.app.Activity.RESULT_OK
-import android.app.Application
 import android.content.Context
 import android.content.Intent
-import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -12,15 +10,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import androidx.core.content.ContextCompat
+import android.widget.TextView
 import com.example.cs501_classgenie.databinding.FragmentOAuthBinding
 import kotlinx.coroutines.launch
 import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.example.cs501_classgenie.database.EventDAO
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
@@ -34,31 +33,34 @@ import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.Events
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-//private const val TOKENS_DIRECTORY_PATH = "/tokens"
-
-//private val httpTransport: HttpTransport = NetHttpTransport()
-
-//private var tokenFolder = File(Environment.getExternalStorageDirectory().toString() + File.separator + TOKENS_DIRECTORY_PATH)
-
-//private val dataStoreFactory = FileDataStoreFactory(tokenFolder) //error message is java.io.IOException: unable to create directory: /tokens
-
-//private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
+import java.util.UUID
 
 
 //note: for notifications have a fall-back if unable to connect with google maps
 //maybe cache google maps directions in advance in terms of time to destination?
 //or, more simply just set it to 10 min before if unable to get google maps data
+
+//what is left:
+//automatic sync
+//maybe more advanced sync action (instead of push a button, maybe try swiping down?)
 class OAuthFragment : Fragment() {
 
     private var isLoggedIn = false
 
     companion object {
         private const val REQUEST_SIGN_IN = 1
-        fun newInstance() = OAuthFragment()
+        private lateinit var calendar: Calendar
+        private lateinit var calendar_events: List<CalendarEvent>
+        private var nextEvent: MutableLiveData<CalendarEvent?> = MutableLiveData<CalendarEvent?>()
+        private var nextEventSummaryText: MutableLiveData<String> = MutableLiveData<String>()
+        private var nextEventLocationText: MutableLiveData<String?> = MutableLiveData<String?>()
+
+        //review datetime localization stuff before proceeding with these
+        //private var nextEventStartText: MutableLiveData<String> = MutableLiveData<String>()
+        //private var nextEventEndText: MutableLiveData<String> = MutableLiveData<String>()
     }
 
-    val OAuthViewModel: OAuthViewModel by activityViewModels()
+    val calendarViewModel: CalendarViewModel by activityViewModels()
 
     private var _binding: FragmentOAuthBinding? = null
 
@@ -75,7 +77,9 @@ class OAuthFragment : Fragment() {
 
 
 
-        val sync_button: Button = binding.syncButton
+        val syncButton: Button = binding.syncButton
+        val nextEventSummary: TextView = binding.nextEventSummary
+
         lifecycleScope.launch{
 
             Log.d("OAuth", "about to start initial auth coroutine")
@@ -87,6 +91,7 @@ class OAuthFragment : Fragment() {
                 Log.d("OAuth", "authorization coroutine started")
                 if (!isLoggedIn) {
                     requestSignIn(requireActivity().baseContext)
+
                 }
 
             }
@@ -94,17 +99,122 @@ class OAuthFragment : Fragment() {
         }
 
 
-        //to-do: start log-in automatically, not at the sync button, that button should be for pulling events from calendar
-
-        sync_button.setOnClickListener{
-            Log.d("Calendar", "this button should refresh cache of calendar events for ViewModel, not done yet")
+        syncButton.setOnClickListener{
+            Log.d("Calendar", "initializing refresh of cache")
+            refresh_cache()
         }
 
+        nextEventSummaryText.observe(viewLifecycleOwner, Observer{
+            nextEventSummary.text = nextEventSummaryText.value
+        })
 
 
 
         return binding.root
     }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                calendarViewModel.events.collect {
+                    events -> calendar_events = events
+                }
+            }
+        }
+
+
+
+    }
+
+
+
+    private fun return_next_event(){
+
+        val size = calendar_events.size
+        Log.d("Calendar", size.toString())
+
+        if (size > 0){
+            val now = DateTime(System.currentTimeMillis())
+            val max = DateTime(now.value+8*24*60*60*1000)
+            var result = calendar_events[0]
+            var current_smallest = max.value-now.value
+
+            for (event in calendar_events){
+                val difference = event.start.value - now.value
+
+                if (difference < current_smallest){
+                    current_smallest = difference
+                    var result = event
+                }
+            }
+            Log.d("Calendar", "found next event")
+            Log.d("Calendar", result.location.toString())
+            nextEventSummaryText.postValue(result.summary)
+            nextEventLocationText.postValue(result.location)
+            nextEvent.postValue(result)
+
+
+        } else {
+            nextEventSummaryText.postValue("No Event Available")
+
+        }
+
+
+    }
+
+    private fun refresh_cache(){
+        if (calendarViewModel.isOnline(requireActivity().baseContext)){
+            try{
+
+                viewLifecycleOwner.lifecycleScope.launch{
+                    withContext(Dispatchers.IO){
+                        calendarViewModel.clearAll()
+
+
+                        val now = DateTime(System.currentTimeMillis())
+                        Log.d("Calendar", now.toString())
+
+                        val events: Events = calendar.events().list("primary")
+                            .setTimeMin(now)
+                            .setTimeMax(DateTime(now.value+7*24*60*60*1000))
+                            .setOrderBy("startTime")
+                            .setSingleEvents(true)
+                            .execute()
+
+                        val items: List<Event> = events.items
+                        Log.d("Calendar", "events retrieved")
+
+                        if (items.isEmpty()) {
+                            Log.d("Calendar", "No upcoming events found.")
+                        } else {
+
+                            for (item in items){
+                                //Log.d("Calendar", item.summary)
+                                //Log.d("Calendar", item.start.dateTime.toString())
+                                //Log.d("Calendar", item.end.dateTime.toString())
+                                //Log.d("Calendar", item.location)
+                                val event = CalendarEvent(UUID.randomUUID(), item.summary, item.start.dateTime, item.end.dateTime, item.location)
+                                calendarViewModel.insertEvent(event)
+                            }
+
+
+                        }
+                    }
+
+
+                }
+            } catch (e: Exception) {
+                Log.d ("Calendar", "exception while refreshing cache")
+            }
+        } else {
+            Log.d ("Calendar", "No internet connection")
+        }
+
+        return_next_event()
+    }
+
 
     //source: https://stackoverflow.com/questions/74555485/java-lang-illegalargumentexception-the-name-must-not-be-empty-null-error-on
     private fun requestSignIn(context: Context) {
@@ -127,76 +237,23 @@ class OAuthFragment : Fragment() {
                         val scopes = listOf(CalendarScopes.CALENDAR)
                         val credential = GoogleAccountCredential.usingOAuth2(requireActivity().baseContext, scopes)
                         credential.selectedAccount = account.account
-                        /*
-                        val app: Application = requireActivity().application
-
-                        fun getTokenFolder(): File {
-                            return File(app.getExternalFilesDir("")?.absolutePath + TOKENS_DIRECTORY_PATH)
-                        }
-
-                        fun getCredentialFileStream(): InputStream {
-
-                            return app.resources.openRawResource(R.raw.credentials)
-                        }
-
-                         */
 
                         val jsonFactory = GsonFactory.getDefaultInstance()
 
-                        // load client secrets (not needed)
-                        /*
-                        val clientSecrets = GoogleClientSecrets.load(
-                            jsonFactory,
-                            InputStreamReader(getCredentialFileStream())
-                        )
-                         */
-                        //Log.d("OAuth", "clientSecrets loaded")
-
                         val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
-                        val calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
+                        calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
                             .setApplicationName(getString(R.string.app_name))
                             .build()
                         Log.d("Calendar", "calendar retrieved")
                         Log.d("Calendar", calendar.toString())
 
-                        val now = DateTime(System.currentTimeMillis())
-                        Log.d("Calendar", now.toString())
-
-
-                        //sample code for retrieving event data; the coroutine is necessary
-                        lifecycleScope.launch{
-                            withContext(Dispatchers.IO){
-                                val events: Events = calendar.events().list("primary")
-                                    .setTimeMin(now)
-                                    .setTimeMax(DateTime(now.value+7*24*60*60*1000))
-                                    .setOrderBy("startTime")
-                                    .setSingleEvents(true)
-                                    .execute()
-
-                                val items: List<Event> = events.items
-                                Log.d("Calendar", "events retrieved")
-
-                                if (items.isEmpty()) {
-                                    Log.d("Calendar", "No upcoming events found.")
-                                } else {
-                                    Log.d("Calendar", "Upcoming events")
-                                    for (event in items) {
-                                        var start: DateTime = event.start.dateTime
-                                        if (start == null) {
-                                            start = event.start.date
-                                        }
-                                        Log.d("Calendar", event.summary.toString())
-                                    }
-                                }
-                            }
-
-
-                        }
-
+                        refresh_cache()
 
                     }
             }
         }
+
+
     }
 
     override fun onDestroyView() {
