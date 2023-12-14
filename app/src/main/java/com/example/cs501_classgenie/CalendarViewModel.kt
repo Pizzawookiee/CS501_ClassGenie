@@ -51,7 +51,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
             "dummy",
             DateTime(LocalDateTime.now().plusMinutes(1).toEpochSecond(UTC)),
             DateTime(LocalDateTime.now().plusMinutes(5).toEpochSecond(UTC)),
-            "720 commonwealth ave"))
+            "900 Commonwealth Ave, Boston, MA 02215, USA"))
     )
     val events: StateFlow<List<CalendarEvent>>
         get() = _events.asStateFlow()

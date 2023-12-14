@@ -87,6 +87,18 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
     val calendarViewModel: CalendarViewModel by viewModels()
 
+    private lateinit var polyline: Polyline
+
+
+
+
+
+
+
+
+
+
+
 
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -158,6 +170,11 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
      * draw route.
      */
     fun drawRoute(googleMap: GoogleMap) {
+        try {
+            polyline.remove()
+        } catch (e: UninitializedPropertyAccessException) {
+
+        }
         // https://stackoverflow.com/a/9289190
         val policy = ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
@@ -290,7 +307,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         // Polylines are useful to show a route or some other connection between points.
         // [START maps_poly_activity_add_polyline_set_tag]
         // [START maps_poly_activity_add_polyline]
-        val polyline1 = googleMap.addPolyline(
+        polyline = googleMap.addPolyline(
             PolylineOptions()
                 .clickable(true)
                 .add(
@@ -306,10 +323,11 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         // [END maps_poly_activity_add_polyline]
         // [START_EXCLUDE silent]
         // Store a data object with the polyline, used here to indicate an arbitrary type.
-        polyline1.tag = "B"
+        polyline.tag = "B"
         // [END maps_poly_activity_add_polyline_set_tag]
         // Style the polyline.
-        stylePolyline(polyline1)
+        stylePolyline(polyline)
+
     }
 
     /**
