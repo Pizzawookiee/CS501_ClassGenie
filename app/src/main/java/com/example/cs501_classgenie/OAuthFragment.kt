@@ -232,24 +232,29 @@ class OAuthFragment : Fragment() {
 
         if (requestCode == REQUEST_SIGN_IN) {
             if (resultCode == RESULT_OK) {
-                GoogleSignIn.getSignedInAccountFromIntent(data)
-                    .addOnSuccessListener { account ->
-                        val scopes = listOf(CalendarScopes.CALENDAR)
-                        val credential = GoogleAccountCredential.usingOAuth2(requireActivity().baseContext, scopes)
-                        credential.selectedAccount = account.account
+                try{
+                    GoogleSignIn.getSignedInAccountFromIntent(data)
+                        .addOnSuccessListener { account ->
+                            val scopes = listOf(CalendarScopes.CALENDAR)
+                            val credential = GoogleAccountCredential.usingOAuth2(requireActivity().baseContext, scopes)
+                            credential.selectedAccount = account.account
 
-                        val jsonFactory = GsonFactory.getDefaultInstance()
+                            val jsonFactory = GsonFactory.getDefaultInstance()
 
-                        val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
-                        calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
-                            .setApplicationName(getString(R.string.app_name))
-                            .build()
-                        Log.d("Calendar", "calendar retrieved")
-                        Log.d("Calendar", calendar.toString())
+                            val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
+                            calendar = Calendar.Builder(httpTransport, jsonFactory, credential)
+                                .setApplicationName(getString(R.string.app_name))
+                                .build()
+                            Log.d("Calendar", "calendar retrieved")
+                            Log.d("Calendar", calendar.toString())
 
-                        refresh_cache()
+                            refresh_cache()
 
-                    }
+                        }
+                } catch (e: Exception){
+                    Log.d("OAuth", e.toString())
+                }
+
             }
         }
 
