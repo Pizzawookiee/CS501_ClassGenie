@@ -57,7 +57,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsRouteBinding
 
-    private var routeTravelTimeInSecond = 20L
+    private var routeTravelTimeInSecond = 30L
     private var permissionDenied = false
 
     // The entry point to the Fused Location Provider.
@@ -131,6 +131,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
         val intent = Intent(this, AlarmReceiver::class.java)
         intent.action = "com.example.cs501_classgenie.alarmManager"
+        intent.putExtra("textTitle",nextEvent.summary)
+        intent.putExtra("textContent",nextEvent.location)
         val pendingIntent = PendingIntent.getBroadcast(
             applicationContext,
             AlarmReceiver.requestCode,
@@ -196,7 +198,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             .url("https://routes.googleapis.com/directions/v2:computeRoutes")
             .post(body)
             .addHeader("Content-Type", "application/json")
-            .addHeader("X-Goog-Api-Key", "AIzaSyDaS8uGRZG-C1bKcyQJeF5qj2c40QdRgHg")
+            .addHeader("X-Goog-Api-Key", "${BuildConfig.MAPS_API_KEY}")
             .addHeader(
                 "X-Goog-FieldMask",
                 "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.polyline"

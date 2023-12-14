@@ -14,8 +14,8 @@ class AlarmReceiver : BroadcastReceiver() {
         val notification: Notification =
             NotificationCompat.Builder(context, context.getString(R.string.channel_id))
                 .setSmallIcon(R.drawable.ic_arrow)
-                .setContentTitle("textTitle")
-                .setContentText("textContent")
+                .setContentTitle(intent.getStringExtra("textTitle"))
+                .setContentText(intent.getStringExtra("textContent"))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .build()
         // notificationId is a unique int for each notification that you must define.
