@@ -1,6 +1,7 @@
 package com.example.cs501_classgenie
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -64,7 +65,7 @@ class WeatherFragment : Fragment() {
             }
 
             override fun onFailure(call: Call<WeatherResponse>, t: Throwable) {
-                // Handle failure
+                Log.d("Weather", "Failure")
             }
         })
     }
