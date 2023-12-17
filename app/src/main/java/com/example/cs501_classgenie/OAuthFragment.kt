@@ -4,6 +4,7 @@ import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.format.DateFormat
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -32,8 +33,11 @@ import com.google.api.services.calendar.model.Events
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
 import java.util.UUID
 
+private const val DATE_FORMAT = "EEE, MMM, dd"
+private var DATE_FORMATTER = SimpleDateFormat("yyyy-MM-dd")
 
 //note: for notifications have a fall-back if unable to connect with google maps
 //maybe cache google maps directions in advance in terms of time to destination?
@@ -53,6 +57,7 @@ class OAuthFragment : Fragment() {
         private var nextEvent: MutableLiveData<CalendarEvent?> = MutableLiveData<CalendarEvent?>()
         private var nextEventSummaryText: MutableLiveData<String> = MutableLiveData<String>()
         private var nextEventLocationText: MutableLiveData<String?> = MutableLiveData<String?>()
+        private var nextEventStartText: MutableLiveData<String> = MutableLiveData<String>()
 
         //review datetime localization stuff before proceeding with these
         //private var nextEventStartText: MutableLiveData<String> = MutableLiveData<String>()
@@ -79,6 +84,8 @@ class OAuthFragment : Fragment() {
         val syncButton: Button = binding.syncButton
         val mapButton: Button = binding.mapButton
         val nextEventSummary: TextView = binding.nextEventSummary
+        val nextEventStart: TextView = binding.nextEventStart
+        val nextEventLocation: TextView = binding.nextEventLocation
 
         lifecycleScope.launch{
 
@@ -111,6 +118,16 @@ class OAuthFragment : Fragment() {
             nextEventSummary.text = nextEventSummaryText.value
         })
 
+        nextEventLocationText.observe(viewLifecycleOwner, Observer{
+            nextEventLocation.text = nextEventLocationText.value
+        })
+
+
+        nextEventStartText.observe(viewLifecycleOwner, Observer{
+
+            nextEventStart.text = DATE_FORMATTER.format(DATE_FORMATTER.parse(nextEventStartText.value))
+        })
+
 
 
         return binding.root
@@ -137,9 +154,10 @@ class OAuthFragment : Fragment() {
 
         val size = calendar_events.size
         Log.d("Calendar", size.toString())
+        val now = DateTime(System.currentTimeMillis())
+
 
         if (size > 0){
-            val now = DateTime(System.currentTimeMillis())
             val max = DateTime(now.value+8*24*60*60*1000)
             var result = calendar_events[0]
             var current_smallest = max.value-now.value
@@ -156,11 +174,14 @@ class OAuthFragment : Fragment() {
             Log.d("Calendar", result.location.toString())
             nextEventSummaryText.postValue(result.summary)
             nextEventLocationText.postValue(result.location)
+            nextEventStartText.postValue(result.start.toString())
             nextEvent.postValue(result)
 
 
         } else {
             nextEventSummaryText.postValue("No Event Available")
+            nextEventLocationText.postValue("")
+            nextEventStartText.postValue(now.toString())
 
         }
 
