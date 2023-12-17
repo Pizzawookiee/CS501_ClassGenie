@@ -42,21 +42,34 @@ object PermissionUtils {
      */
     @JvmStatic
     fun requestPermission(
-        activity: AppCompatActivity, requestId: Int,
-        permission: String, finishActivity: Boolean
+        activity: AppCompatActivity,
+        requestId: Int,
+        permissions: Array<String>,
+        finishActivity: Boolean
     ) {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
-            // Display a dialog with rationale.
-            RationaleDialog.newInstance(requestId, finishActivity)
-                .show(activity.supportFragmentManager, "dialog")
-        } else {
-            // Location permission has not been granted yet, request it.
-            ActivityCompat.requestPermissions(
-                activity,
-                arrayOf(permission),
-                requestId
-            )
-        }
+//        if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permissions)) {
+//            // Display a dialog with rationale.
+//            RationaleDialog.newInstance(requestId, finishActivity)
+//                .show(activity.supportFragmentManager, "dialog")
+//        }
+        RationaleDialog.newInstance(requestId, finishActivity)
+            .show(activity.supportFragmentManager, "dialog")
+        // Location permission has not been granted yet, request it.
+        ActivityCompat.requestPermissions(
+            activity,
+            permissions,
+            requestId
+        )
+    }
+
+    @JvmStatic
+    fun requestPermission(
+        activity: AppCompatActivity,
+        requestId: Int,
+        permission: String,
+        finishActivity: Boolean
+    ) {
+        requestPermission(activity,requestId, arrayOf(permission), finishActivity)
     }
 
     /**
