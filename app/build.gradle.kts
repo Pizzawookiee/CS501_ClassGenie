@@ -98,6 +98,9 @@ dependencies {
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.1")
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
+
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
+
 }
 
 secrets {

@@ -17,6 +17,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.cs501_classgenie.databinding.FragmentOAuthBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -33,8 +34,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import java.text.SimpleDateFormat
 
-
+//https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
+private var DATE_FORMATTER = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX") //doesn't work with string "2023-12-18T18:34:49.254-05:00"
 //note: for notifications have a fall-back if unable to connect with google maps
 //maybe cache google maps directions in advance in terms of time to destination?
 //or, more simply just set it to 10 min before if unable to get google maps data
@@ -53,10 +56,8 @@ class OAuthFragment : Fragment() {
         private var nextEvent: MutableLiveData<CalendarEvent?> = MutableLiveData<CalendarEvent?>()
         private var nextEventSummaryText: MutableLiveData<String> = MutableLiveData<String>()
         private var nextEventLocationText: MutableLiveData<String?> = MutableLiveData<String?>()
+        private var nextEventStartText: MutableLiveData<String> = MutableLiveData<String>()
 
-        //review datetime localization stuff before proceeding with these
-        //private var nextEventStartText: MutableLiveData<String> = MutableLiveData<String>()
-        //private var nextEventEndText: MutableLiveData<String> = MutableLiveData<String>()
     }
 
     val calendarViewModel: CalendarViewModel by activityViewModels()
@@ -79,6 +80,9 @@ class OAuthFragment : Fragment() {
         val syncButton: Button = binding.syncButton
         val mapButton: Button = binding.mapButton
         val nextEventSummary: TextView = binding.nextEventSummary
+        val nextEventStart: TextView = binding.nextEventStart
+        val nextEventLocation: TextView = binding.nextEventLocation
+        val swipeRefresh: SwipeRefreshLayout = binding.swiperefresh
 
         lifecycleScope.launch{
 
@@ -102,6 +106,16 @@ class OAuthFragment : Fragment() {
             Log.d("Calendar", "initializing refresh of cache")
             refresh_cache()
         }
+
+        swipeRefresh.setOnRefreshListener {
+            Log.i("Calendar", "onRefresh called from SwipeRefreshLayout")
+
+            // This method performs the actual data-refresh operation and calls
+            // setRefreshing(false) when it finishes.
+            refresh_cache()
+            swipeRefresh.isRefreshing = false
+        }
+
         mapButton.setOnClickListener{
             val myIntent = Intent(getActivity(), MapsActivity::class.java)
             startActivity(myIntent)
@@ -109,6 +123,14 @@ class OAuthFragment : Fragment() {
 
         nextEventSummaryText.observe(viewLifecycleOwner, Observer{
             nextEventSummary.text = nextEventSummaryText.value
+        })
+
+        nextEventLocationText.observe(viewLifecycleOwner, Observer{
+            nextEventLocation.text = nextEventLocationText.value
+        })
+
+        nextEventStartText.observe(viewLifecycleOwner, Observer{
+            nextEventStart.text = DATE_FORMATTER.format(DATE_FORMATTER.parse(nextEventStartText.value))
         })
 
 
@@ -137,9 +159,9 @@ class OAuthFragment : Fragment() {
 
         val size = calendar_events.size
         Log.d("Calendar", size.toString())
+        val now = DateTime(System.currentTimeMillis())
 
         if (size > 0){
-            val now = DateTime(System.currentTimeMillis())
             val max = DateTime(now.value+8*24*60*60*1000)
             var result = calendar_events[0]
             var current_smallest = max.value-now.value
@@ -156,11 +178,14 @@ class OAuthFragment : Fragment() {
             Log.d("Calendar", result.location.toString())
             nextEventSummaryText.postValue(result.summary)
             nextEventLocationText.postValue(result.location)
+            nextEventStartText.postValue(result.start.toString())
             nextEvent.postValue(result)
 
 
         } else {
             nextEventSummaryText.postValue("No Event Available")
+            nextEventLocationText.postValue("")
+            nextEventStartText.postValue(now.toString())
 
         }
 

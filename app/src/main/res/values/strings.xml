@@ -9,4 +9,7 @@
     <string name="channel_name">notification</string>
     <string name="channel_description">notification decription</string>
     <string name="channel_id">classgenie_notification</string>
+    <string name="your_next_event_is">Your Next Event Is:</string>
+    <string name="map">Map</string>
+    <string name="sync_calendar">Sync Calendar</string>
 </resources>
