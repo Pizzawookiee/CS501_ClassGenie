@@ -37,14 +37,10 @@ import java.util.UUID
 import java.text.SimpleDateFormat
 
 //https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
-private var DATE_FORMATTER = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX") //doesn't work with string "2023-12-18T18:34:49.254-05:00"
-//note: for notifications have a fall-back if unable to connect with google maps
-//maybe cache google maps directions in advance in terms of time to destination?
-//or, more simply just set it to 10 min before if unable to get google maps data
+private var DATE_FORMATTER = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 
-//what is left:
-//automatic sync
-//maybe more advanced sync action (instead of push a button, maybe try swiping down?)
+
+
 class OAuthFragment : Fragment() {
 
     private var isLoggedIn = false
