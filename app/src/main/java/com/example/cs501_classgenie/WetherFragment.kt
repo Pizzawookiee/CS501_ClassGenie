@@ -13,7 +13,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
-import com.example.cs501_classgenie.R
 
 
 class WeatherFragment : Fragment() {
@@ -34,7 +33,7 @@ class WeatherFragment : Fragment() {
 
     // Create a Retrofit instance
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("http://api.openweathermap.org/")
+        .baseUrl("https://api.openweathermap.org/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
