@@ -4,7 +4,7 @@
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
 
-        <item name="android:background">#b39bd8</item>
+
     </style>
 
     <style name="Theme.CS501_ClassGenie" parent="Base.Theme.CS501_ClassGenie" />
