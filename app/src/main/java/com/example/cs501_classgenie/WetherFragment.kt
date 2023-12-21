@@ -56,9 +56,9 @@ class WeatherFragment : Fragment() {
                 if (response.isSuccessful) {
                     val weatherResponse = response.body()
                     // Update UI with the weather data
-                    view?.findViewById<TextView>(R.id.textViewTemperature)?.text = "${R.string.temperature} ${weatherResponse?.main?.temp}"
-                    view?.findViewById<TextView>(R.id.textViewHumidity)?.text = "${R.string.humidity} ${weatherResponse?.main?.humidity}%"
-                    view?.findViewById<TextView>(R.id.textViewWeatherDescription)?.text = "${R.string.weather} ${weatherResponse?.weather?.firstOrNull()?.description}"
+                    view?.findViewById<TextView>(R.id.textViewTemperature)?.text = "${getString(R.string.temperature)} ${weatherResponse?.main?.temp}"
+                    view?.findViewById<TextView>(R.id.textViewHumidity)?.text = "${getString(R.string.humidity)} ${weatherResponse?.main?.humidity}%"
+                    view?.findViewById<TextView>(R.id.textViewWeatherDescription)?.text = "${getString(R.string.weather)} ${weatherResponse?.weather?.firstOrNull()?.description}"
                 }
             }
 
