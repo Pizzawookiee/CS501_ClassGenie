@@ -18,8 +18,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package com.example.kotlindemos
+package com.example.cs501_classgenie
 
+// https://github.com/googlemaps-samples/android-samples/blob/main/ApiDemos/kotlin/app/src/gms/java/com/example/kotlindemos/PermissionUtils.kt
 import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
@@ -30,7 +31,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.DialogFragment
-import com.example.cs501_classgenie.R
 
 /**
  * Utility class for access to runtime permissions.
@@ -52,8 +52,8 @@ object PermissionUtils {
 //            RationaleDialog.newInstance(requestId, finishActivity)
 //                .show(activity.supportFragmentManager, "dialog")
 //        }
-        RationaleDialog.newInstance(requestId, finishActivity)
-            .show(activity.supportFragmentManager, "dialog")
+//        RationaleDialog.newInstance(requestId, finishActivity)
+//            .show(activity.supportFragmentManager, "dialog")
         // Location permission has not been granted yet, request it.
         ActivityCompat.requestPermissions(
             activity,
