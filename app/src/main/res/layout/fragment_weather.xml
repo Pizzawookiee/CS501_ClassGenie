@@ -31,21 +31,21 @@
                 android:id="@+id/textViewTemperature"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Temperature"
+                android:text="@string/temperature"
                 android:textSize="20sp"/>
 
             <TextView
                 android:id="@+id/textViewHumidity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Humidity"
+                android:text="@string/humidity"
                 android:textSize="20sp"/>
 
             <TextView
                 android:id="@+id/textViewWeatherDescription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Weather"
+                android:text="@string/weather"
                 android:textSize="20sp"/>
 
 

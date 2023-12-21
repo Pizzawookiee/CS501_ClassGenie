@@ -16,4 +16,7 @@
     <string name="next_schedule_event">next schedule event</string>
     <string name="tap_to_sync_calendar">tap to sync calendar</string>
     <string name="tap_to_view_map">tap to view map</string>
+    <string name="temperature">Temperature: </string>
+    <string name="humidity">Humidity: </string>
+    <string name="weather">Weather: </string>
 </resources>
