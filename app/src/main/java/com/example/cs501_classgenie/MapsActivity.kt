@@ -24,7 +24,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.cs501_classgenie.databinding.ActivityMapsRouteBinding
-import com.example.kotlindemos.PermissionUtils
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -60,6 +59,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsRouteBinding
 
+    val calendarViewModel: CalendarViewModel by viewModels()
+
     private var routeTravelTimeInSecond = 30L
     private var permissionDenied = false
 
@@ -71,6 +72,10 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     // A default location (725 Commonwealth Ave, Boston) and default zoom to use when location permission is
     // not granted.
     private val defaultLocation = LatLng(42.3503127, -71.1058402)
+
+    private lateinit var pendingIntent: PendingIntent
+
+    private lateinit var nextEvent: CalendarEvent
 
     var destination = """
         "address": "720 commonwealth ave"
@@ -88,7 +93,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
     private var requestNotificationPermission = true
 
-    val calendarViewModel: CalendarViewModel by viewModels()
+
 
     private lateinit var polyline: Polyline
 
@@ -122,44 +127,14 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             notificationManager.createNotificationChannel(mChannel)
         }
 
-        val nextEvent = calendarViewModel.events.value[0]
-        destination = """
-        "address": "${nextEvent.location}"
-        """.trimIndent()
-
-        var currentDateTime = nextEvent.start
-        var current = LocalDateTime.ofEpochSecond(currentDateTime.value, 0, UTC)
+        nextEvent = calendarViewModel.events.value[0]
 
         getAllPermission()
-        getNotificationPermission()
         getLocationPermission()
+        getNotificationPermission()
         getAlarmPermission()
-        alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        val intent = Intent(this, AlarmReceiver::class.java)
-        intent.action = "com.example.cs501_classgenie.alarmManager"
-        intent.putExtra("textTitle", nextEvent.summary)
-        intent.putExtra("textContent", nextEvent.location)
-        val pendingIntent = PendingIntent.getBroadcast(
-            applicationContext,
-            AlarmReceiver.requestCode,
-            intent,
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
-//        var current = LocalDateTime.now()
-        current = current.minusSeconds(routeTravelTimeInSecond)
-
-        val cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, current.hour);  // set hour
-        cal.set(Calendar.MINUTE, current.minute);          // set minute
-        cal.set(Calendar.SECOND, current.second);               // set seconds
-        Log.d("time","${cal.get(Calendar.HOUR_OF_DAY)}:${cal.get(Calendar.MINUTE)}")
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            cal.getTimeInMillis(),
-            pendingIntent
-        );
+//        registerAlarm()
     }
 
 
@@ -174,8 +149,8 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
      */
     @SuppressLint("MissingPermission")
     override fun onMapReady(googleMap: GoogleMap) {
-        mMap = googleMap
         getLocationPermission()
+        mMap = googleMap
         // Add a marker in Boston and move the camera
 //        val boston = LatLng(42.0, -71.0)
 //        mMap.addMarker(MarkerOptions().position(boston).title("Marker in Boston"))
@@ -193,17 +168,17 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             currentLocation = defaultLocation
         }
         mMap.addMarker(MarkerOptions().position(currentLocation).title("Current Position"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation,DEFAULT_ZOOM.toFloat()))
 //        mMap.isMyLocationEnabled = true
+        getNotificationPermission()
     }
 
     override fun onMyLocationButtonClick(): Boolean {
         Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show()
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
-        getLocationPermission()
-        getDeviceLocation()
-//        drawRoute(mMap)
+//        getLocationPermission()
+        getDeviceLocation() // and then draw route and then set alarm
         return false
     }
 
@@ -216,6 +191,54 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
      * Prompts the user for permission to use the device location.
      */
 
+    /**
+     * Gets the current location of the device, and positions the map's camera.
+     */
+    @SuppressLint("MissingPermission")
+    private fun getDeviceLocation() {
+        /*
+         * Get the best and most recent location of the device, which may be null in rare
+         * cases when a location is not available.
+         */
+//        enableMyLocation()
+//        getLocationPermission()
+//        try {
+        val locationResult = fusedLocationProviderClient.lastLocation
+        locationResult.addOnCompleteListener(this) { task ->
+            if (task.isSuccessful) {
+                // Set the map's camera position to the current location of the device.
+                lastKnownLocation = task.result
+                if (lastKnownLocation != null) {
+                    mMap?.moveCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(
+                                lastKnownLocation!!.latitude,
+                                lastKnownLocation!!.longitude
+                            ), DEFAULT_ZOOM.toFloat()
+                        )
+                    )
+                }
+                Log.d(TAG, "Current location " + lastKnownLocation.toString())
+                Log.d(TAG, "task " + task.exception)
+                // draw route after getting current location
+                drawRoute(mMap)
+                getNotificationPermission()
+            } else {
+                Log.d(TAG, "Current location is null. Using defaults.")
+                Log.e(TAG, "Exception: %s", task.exception)
+                mMap?.moveCamera(
+                    CameraUpdateFactory
+                        .newLatLngZoom(defaultLocation, DEFAULT_ZOOM.toFloat())
+                )
+//                    mMap?.uiSettings?.isMyLocationButtonEnabled = false
+            }
+        }
+
+//        } catch (e: SecurityException) {
+//            Log.e("Exception: %s", e.message, e)
+//        }
+    }
+
     // https://github.com/googlemaps-samples/android-samples/tree/main/ApiDemos/kotlin
     /**
      * draw route.
@@ -226,9 +249,16 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         } catch (e: UninitializedPropertyAccessException) {
 
         }
+
         // https://stackoverflow.com/a/9289190
         val policy = ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
+
+        nextEvent = calendarViewModel.events.value[0]
+        destination = """
+        "address": "${nextEvent.location}"
+        """.trimIndent()
+
         val origin = """
             "location":{
                 "latLng":{
@@ -237,7 +267,6 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
                 }
             }
         """.trimIndent()
-
 
         val bodyJson = """
           {
@@ -337,6 +366,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             .getJSONObject(0)
             .getString("duration")
         routeTravelTimeInSecond = routeDuration.dropLast(1).toLong()
+        Log.d("notification","estimated route duration ${routeTravelTimeInSecond}")
         val routeCoordinates = jsonObject.getJSONArray("routes")
             .getJSONObject(0)
             .getJSONObject("polyline")
@@ -363,12 +393,6 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
                 .clickable(true)
                 .add(
                     *LatLngList.toTypedArray()
-//                        LatLng(-29.501, 119.700),
-//            LatLng(-27.456, 119.672),
-//            LatLng(-25.971, 124.187),
-//            LatLng(-28.081, 126.555),
-//            LatLng(-28.848, 124.229),
-//            LatLng(-28.215, 123.938)
                 )
         )
         // [END maps_poly_activity_add_polyline]
@@ -379,53 +403,49 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         // Style the polyline.
         stylePolyline(polyline)
         getAlarmPermission()
+        registerAlarm()
     }
 
-    /**
-     * Gets the current location of the device, and positions the map's camera.
-     */
-    @SuppressLint("MissingPermission")
-    private fun getDeviceLocation() {
-        /*
-         * Get the best and most recent location of the device, which may be null in rare
-         * cases when a location is not available.
-         */
-//        enableMyLocation()
-//        getLocationPermission()
-//        try {
-        val locationResult = fusedLocationProviderClient.lastLocation
-        locationResult.addOnCompleteListener(this) { task ->
-            if (task.isSuccessful) {
-                // Set the map's camera position to the current location of the device.
-                lastKnownLocation = task.result
-                if (lastKnownLocation != null) {
-                    mMap?.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(
-                            LatLng(
-                                lastKnownLocation!!.latitude,
-                                lastKnownLocation!!.longitude
-                            ), DEFAULT_ZOOM.toFloat()
-                        )
-                    )
-                }
-                Log.d(TAG, "Current location " + lastKnownLocation.toString())
-                Log.d(TAG, "task " + task.exception)
-                drawRoute(mMap)
-                getNotificationPermission()
-            } else {
-                Log.d(TAG, "Current location is null. Using defaults.")
-                Log.e(TAG, "Exception: %s", task.exception)
-                mMap?.moveCamera(
-                    CameraUpdateFactory
-                        .newLatLngZoom(defaultLocation, DEFAULT_ZOOM.toFloat())
-                )
-//                    mMap?.uiSettings?.isMyLocationButtonEnabled = false
-            }
+    private fun registerAlarm() {
+        // cancel previous alarm
+        try {
+            pendingIntent.cancel()
+        } catch (e: UninitializedPropertyAccessException) {
+
         }
 
-//        } catch (e: SecurityException) {
-//            Log.e("Exception: %s", e.message, e)
-//        }
+        nextEvent = calendarViewModel.events.value[0]
+
+        alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val intent = Intent(this, AlarmReceiver::class.java)
+        intent.action = "com.example.cs501_classgenie.alarmManager"
+        intent.putExtra("textTitle", nextEvent.summary)
+        intent.putExtra("textContent", nextEvent.location)
+
+        pendingIntent = PendingIntent.getBroadcast(
+            applicationContext,
+            AlarmReceiver.requestCode,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        var eventStart = nextEvent.start
+        var alarmTime = LocalDateTime.ofEpochSecond(eventStart.value, 0, UTC)
+
+//        var current = LocalDateTime.now()
+        alarmTime = alarmTime.minusSeconds(routeTravelTimeInSecond)
+
+        val cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, alarmTime.hour);  // set hour
+        cal.set(Calendar.MINUTE, alarmTime.minute);          // set minute
+        cal.set(Calendar.SECOND, alarmTime.second);               // set seconds
+        Log.d("notification","alarm set ${cal.get(Calendar.HOUR_OF_DAY)}:${cal.get(Calendar.MINUTE)}:${cal.get(Calendar.SECOND)}")
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            cal.getTimeInMillis(),
+            pendingIntent
+        );
     }
 
     // [START maps_poly_activity_style_polyline]
@@ -463,6 +483,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
     /**
      * Enables the My Location layer if the fine location permission has been granted.
+     * hope this always work
      */
     private fun enableMyLocation() {
 //        if (!::mMap.isInitialized) return
@@ -481,6 +502,10 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         // [END maps_check_location_permission]
     }
 
+
+    /**
+     * Getting Permissions
+     */
     private fun getAllPermission(){
         PermissionUtils.requestPermission(
             this,
@@ -504,7 +529,7 @@ class MapsActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
-//            mMap.isMyLocationEnabled = true
+            mMap.isMyLocationEnabled = true
         } else {
             // Permission to access the location is missing. Show rationale and request permission
             PermissionUtils.requestPermission(

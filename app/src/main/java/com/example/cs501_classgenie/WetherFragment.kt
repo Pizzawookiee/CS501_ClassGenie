@@ -13,7 +13,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
-import com.example.cs501_classgenie.R
 
 
 class WeatherFragment : Fragment() {
@@ -34,7 +33,7 @@ class WeatherFragment : Fragment() {
 
     // Create a Retrofit instance
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("http://api.openweathermap.org/")
+        .baseUrl("https://api.openweathermap.org/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
@@ -57,9 +56,9 @@ class WeatherFragment : Fragment() {
                 if (response.isSuccessful) {
                     val weatherResponse = response.body()
                     // Update UI with the weather data
-                    view?.findViewById<TextView>(R.id.textViewTemperature)?.text = "${R.string.temperature} ${weatherResponse?.main?.temp}"
-                    view?.findViewById<TextView>(R.id.textViewHumidity)?.text = "${R.string.humidity} ${weatherResponse?.main?.humidity}%"
-                    view?.findViewById<TextView>(R.id.textViewWeatherDescription)?.text = "${R.string.weather} ${weatherResponse?.weather?.firstOrNull()?.description}"
+                    view?.findViewById<TextView>(R.id.textViewTemperature)?.text = "${getString(R.string.temperature)} ${weatherResponse?.main?.temp}"
+                    view?.findViewById<TextView>(R.id.textViewHumidity)?.text = "${getString(R.string.humidity)} ${weatherResponse?.main?.humidity}%"
+                    view?.findViewById<TextView>(R.id.textViewWeatherDescription)?.text = "${getString(R.string.weather)} ${weatherResponse?.weather?.firstOrNull()?.description}"
                 }
             }
 
