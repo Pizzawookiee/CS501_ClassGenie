@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CS501_ClassGenie</string>
+    <string name="title_activity_maps">MapasActividad</string>
+    <string name="hello_blank_fragment">Hola fragmento en blanco</string>
+    <string name="location_permission_denied">ubicación_permiso_denegado</string>
+    <string name="permission_required_toast">permiso_requerido_tostado</string>
+    <string name="permission_rationale_location">permiso_racional_ubicación</string>
+    <string name="channel_name">notificación</string>
+    <string name="channel_description">descripción de la notificación</string>
+    <string name="channel_id">classgenie_notificación</string>
+    <string name="title_activity_main">Actividad principal</string>
+    <string name="your_next_event_is">Su próximo evento es:</string>
+    <string name="map">Mapa</string>
+    <string name="sync_calendar">Sincronizar calendario</string>
+    <string name="weather_display">visualización del tiempo</string>
+    <string name="next_schedule_event">próximo evento programado</string>
+    <string name="tap_to_sync_calendar">toque para sincronizar el calendario</string>
+    <string name="tap_to_view_map">toque para ver el mapa</string>
+</resources>
